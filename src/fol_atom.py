@@ -10,6 +10,9 @@ class FolAtom():
     def __str__(self) -> str:
         return f'FolAtom: {self.atom.__str__()}'
     
+    def __eq__(self, other:Atom) -> Atom:
+        return self.atom == other.atom
+    
 def type_check(validType=FolAtom):
     def inner_type_check(func):
         @wraps(func)
