@@ -30,7 +30,7 @@ class FolLemmaTests(unittest.TestCase):
         x = get_assume(h_imply(a, b))
         y = get_assume(h_imply(b, c))
         l = lemma3(x, y)
-        self.assertEqual(str(l), 'Lemma3{Assume[h_imply(a, b)],Assume[h_imply(b, c)]}')
+        self.assertEqual(str(l), 'Lemma3{Assume[h_imply(a, b)], Assume[h_imply(b, c)]}')
         self.assertEqual(str(l.getFolAtom()), 'ModusPonens[Assume[h_imply(a, b)], ModusPonens[ModusPonens[Assume[h_imply(b, c)], Axiom1[h_imply(b, c), a]], Axiom2[a, b, c]]]')
         self.assertEqual(str(l.getAtom()), 'h_imply(a, c)')
     
