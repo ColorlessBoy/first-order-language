@@ -1,22 +1,33 @@
 from __future__ import annotations
+from util import type_check
+from typing import Any
 
 class Atom:
-    def __init__(self, content: str) -> None:
+    def __init__(self, term: Any) -> None:
         """ Base type in this project """
-        self.content = content
-        self.next = []
+        if isinstance(term, str):
+            self.name = term
+            self.next = []
+        else:
+            getAtom = getattr(term, "getAtom", None)
+            if callable(getAtom):
+                atom = term.getAtom()
+                self.name = atom.name
+                self.next = atom.next
+            else:
+                raise ValueError(f"Atom() can not accept {type(term)}.")
     
-    def __iadd__(self, other:Atom) -> Atom:
+    def add(self, other:Atom) -> Atom:
         self.next.append(other)
         return self
     
-    def __add__(self, other:Atom) -> Atom:
-        a = Atom(self.content)
-        a += other
-        return a
+    def getAtom(self) -> Atom:
+        return self
     
-    def __eq__(self, other:Atom) -> Atom:
-        if self.content != other.content:
+    def __eq__(self, other:Atom) -> bool:
+        if not isinstance(other, Atom):
+            return False
+        if self.name != other.name:
             return False
         if len(self.next) != len(other.next):
             return False
@@ -26,37 +37,36 @@ class Atom:
         return True
 
     def __str__(self) -> str:
-        result = self.content
+        result = self.name
         if len(self.next) > 0:
             result += '('
             for i, atom in enumerate(self.next):
                 if i > 0:
-                    result += ','
-                result += atom.__str__()
+                    result += ', '
+                result += str(atom)
             result += ')'
         return result
 
 base_atoms = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
-    
+
+@type_check(str)
 def get_atom(atom: str) -> Atom:
     """ base_atoms = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'] """
     if atom not in base_atoms:
-        raise ValueError(f"The form does not contain {atom} atom.")
+        raise ValueError(f"The form does not contain base atom '{atom}'.")
     return Atom(atom)
 
+@type_check(Atom)
 def h_not(a: Atom) -> Atom:
     """ ~a """
-    if not isinstance(a, Atom):
-        raise TypeError(f'Arguments must be <class: Atom>.')
     atom = Atom('h_not')
-    atom += a
+    atom.add(a)
     return atom
 
+@type_check(Atom)
 def h_imply(a: Atom, b: Atom) -> Atom:
     """ a -> b """
-    if not isinstance(a, Atom) or not isinstance(b, Atom):
-        raise TypeError(f'Arguments must be <class: Atom>.')
     atom = Atom('h_imply')
-    atom += a
-    atom += b
+    atom.add(a)
+    atom.add(b)
     return atom
