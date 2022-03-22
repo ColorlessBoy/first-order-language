@@ -39,7 +39,7 @@ class FolLemma:
 
 @type_check(Atom)
 def lemma1(a: Atom) -> FolLemma:
-    """ Lemma: a -> a. """
+    """ Lemma: |=> a -> a. """
     b = h_imply(a, a)
 
     s1 = axiom1(a, a)
@@ -54,7 +54,7 @@ def lemma1(a: Atom) -> FolLemma:
 
 @type_check(Atom)
 def lemma2(a: Atom) -> FolLemma:
-    """ Lemma: ((~a -> a) -> a). """
+    """ Lemma: |=> ((~a -> a) -> a). """
     b = h_not(a)
 
     s1 = lemma1(b)
@@ -68,7 +68,7 @@ def lemma2(a: Atom) -> FolLemma:
 
 @type_check(FolAtom)
 def lemma3(x: FolAtom, y: FolAtom) -> FolLemma:
-    """ Lemma: \{x = (a -> b), y = (b -> c)\} => (a -> c). """
+    """ Lemma: {x = (a -> b), y = (b -> c)} |=> (a -> c). """
     if x.getAtom().name != 'h_imply':
         raise ValueError("Require: x.getAtom().name == 'h_imply'.")
     if len(x.getAtom().next) != 2:
@@ -96,7 +96,7 @@ def lemma3(x: FolAtom, y: FolAtom) -> FolLemma:
 
 @type_check(FolAtom)
 def lemma4(x: FolAtom) -> FolLemma:
-    """ Lemma: \{x = a -> (b -> c)\} => b -> (a -> c). """
+    """ Lemma: {x = a -> (b -> c)} |=> b -> (a -> c). """
     if x.getAtom().name != 'h_imply':
         raise ValueError("Require: x.getAtom().name == 'h_imply'.")
     if len(x.getAtom().next) != 2:
@@ -121,7 +121,7 @@ def lemma4(x: FolAtom) -> FolLemma:
 
 @type_check(Atom)
 def lemma5(a: Atom, b: Atom) -> FolLemma:
-    """ Lemma: (~a -> ~b) -> (b -> a). """
+    """ Lemma: |=> (~a -> ~b) -> (b -> a). """
     s1 = axiom1(b, h_not(a))
     s2 = lemma4(axiom3(a, b))
     s3 = lemma4(lemma3(s1, s2))
@@ -132,13 +132,26 @@ def lemma5(a: Atom, b: Atom) -> FolLemma:
     result.folatom = s3.getFolAtom()
     return result
 
-@type_check([Atom, FolAtom])
-def lemma6(x: Atom, y: FolAtom) -> FolLemma:
-    """ Lemma: \{x, y\} => (x -> y) """
-    s1 = mp(y, axiom1(y, x))
+@type_check(FolAtom)
+def lemma6(x: FolAtom, y: FolAtom) -> FolLemma:
+    """ Deduction Theorem: Assume(x) |=> y ===> |=> h_imply(x, y). """
+    if x.name != 'Assume':
+        """ x needs to be Assume(z). """
+        raise ValueError('Required: x.name == "Assume"')
+    
+    if x == y:
+        s = lemma1(x)
+    elif y.name in ['Axiom1', 'Axiom2', 'Axiom3', 'Assume']:
+        """ y is not based on assumption x. """
+        s = mp(y, axiom1(y, x))
+    else:
+        s0 = lemma6(x, y.next[0])
+        s1 = lemma6(x, y.next[1])
+        s2 = axiom2(x, y.next[0], y)
+        s = mp(s0, mp(s1, s2))
 
     result = FolLemma('Lemma6')
     result.add(x)
     result.add(y)
-    result.folatom = s1.getFolAtom()
+    result.folatom = s.getFolAtom()
     return result

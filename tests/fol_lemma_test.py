@@ -54,11 +54,14 @@ class FolLemmaTests(unittest.TestCase):
     
     def test_lemma6(self):
         a = get_atom('a')
-        b = get_assume(get_atom('b'))
-        l = lemma6(a, b)
-        self.assertEqual(str(l), 'Lemma6{a, Assume[b]}')
-        self.assertEqual(str(l.getFolAtom()), 'ModusPonens[Assume[b], Axiom1[b, a]]')
-        self.assertEqual(str(l.getAtom()), 'h_imply(a, b)')
+        b = get_atom('b')
+        B = get_assume(h_imply(a, b))
+        C = get_assume(h_imply(h_imply(a, b), a))
+        D = mp(mp(B, C), B)
+        l = lemma6(B, D)
+        self.assertEqual(str(l), 'Lemma6{Assume[h_imply(a, b)], ModusPonens[ModusPonens[Assume[h_imply(a, b)], Assume[h_imply(h_imply(a, b), a)]], Assume[h_imply(a, b)]]}')
+        self.assertEqual(str(l.getFolAtom()), 'ModusPonens[ModusPonens[ModusPonens[Axiom1[h_imply(a, b), h_imply(a, b)], ModusPonens[Axiom1[h_imply(a, b), h_imply(h_imply(a, b), h_imply(a, b))], Axiom2[h_imply(a, b), h_imply(h_imply(a, b), h_imply(a, b)), h_imply(a, b)]]], ModusPonens[ModusPonens[Assume[h_imply(h_imply(a, b), a)], Axiom1[h_imply(h_imply(a, b), a), h_imply(a, b)]], Axiom2[h_imply(a, b), h_imply(a, b), a]]], ModusPonens[ModusPonens[Axiom1[h_imply(a, b), h_imply(a, b)], ModusPonens[Axiom1[h_imply(a, b), h_imply(h_imply(a, b), h_imply(a, b))], Axiom2[h_imply(a, b), h_imply(h_imply(a, b), h_imply(a, b)), h_imply(a, b)]]], Axiom2[h_imply(a, b), a, b]]]')
+        self.assertEqual(str(l.getAtom()), 'h_imply(h_imply(a, b), b)')
 
 if __name__ == '__main__':
     unittest.main()
