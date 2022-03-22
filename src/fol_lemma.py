@@ -134,7 +134,7 @@ def lemma5(a: Atom, b: Atom) -> FolLemma:
 
 @type_check(FolAtom)
 def lemma6(x: FolAtom, y: FolAtom) -> FolLemma:
-    """ Deduction Theorem: Assume(x) |=> y ===> |=> h_imply(x, y). """
+    """ Deduction Theorem: Assume(a) |=> b ===> |=> h_imply(a, b). """
     if x.name != 'Assume':
         """ x needs to be Assume(z). """
         raise ValueError('Required: x.name == "Assume"')
@@ -145,8 +145,8 @@ def lemma6(x: FolAtom, y: FolAtom) -> FolLemma:
         """ y is not based on assumption x. """
         s = mp(y, axiom1(y, x))
     else:
-        s0 = lemma6(x, y.next[0])
-        s1 = lemma6(x, y.next[1])
+        s0 = lemma6(x, y.next[0]) # h_imply(x, y.next[0]) without assumption x.
+        s1 = lemma6(x, y.next[1]) # h_imply(x, h_imply(y.next[0], y)) without assumption x.
         s2 = axiom2(x, y.next[0], y)
         s = mp(s0, mp(s1, s2))
 
