@@ -51,6 +51,14 @@ class FolLemmaTests(unittest.TestCase):
         self.assertEqual(str(l), 'Lemma5{a, b}')
         self.assertEqual(str(l.getFolAtom()), 'ModusPonens[Axiom1[h_imply(h_not(a), h_not(b)), b], ModusPonens[ModusPonens[ModusPonens[ModusPonens[Axiom1[b, h_not(a)], ModusPonens[ModusPonens[ModusPonens[Axiom1[h_imply(h_not(a), b), h_imply(h_not(a), h_not(b))], ModusPonens[ModusPonens[ModusPonens[Axiom3[a, b], Axiom2[h_imply(h_not(a), h_not(b)), h_imply(h_not(a), b), a]], Axiom1[h_imply(h_imply(h_imply(h_not(a), h_not(b)), h_imply(h_not(a), b)), h_imply(h_imply(h_not(a), h_not(b)), a)), h_imply(h_not(a), b)]], Axiom2[h_imply(h_not(a), b), h_imply(h_imply(h_not(a), h_not(b)), h_imply(h_not(a), b)), h_imply(h_imply(h_not(a), h_not(b)), a)]]], Axiom1[h_imply(h_imply(h_not(a), b), h_imply(h_imply(h_not(a), h_not(b)), a)), b]], Axiom2[b, h_imply(h_not(a), b), h_imply(h_imply(h_not(a), h_not(b)), a)]]], Axiom2[b, h_imply(h_not(a), h_not(b)), a]], Axiom1[h_imply(h_imply(b, h_imply(h_not(a), h_not(b))), h_imply(b, a)), h_imply(h_not(a), h_not(b))]], Axiom2[h_imply(h_not(a), h_not(b)), h_imply(b, h_imply(h_not(a), h_not(b))), h_imply(b, a)]]]')
         self.assertEqual(str(l.getAtom()), 'h_imply(h_imply(h_not(a), h_not(b)), h_imply(b, a))')
+    
+    def test_lemma6(self):
+        a = get_atom('a')
+        b = get_assume(get_atom('b'))
+        l = lemma6(a, b)
+        self.assertEqual(str(l), 'Lemma6{a, Assume[b]}')
+        self.assertEqual(str(l.getFolAtom()), 'ModusPonens[Assume[b], Axiom1[b, a]]')
+        self.assertEqual(str(l.getAtom()), 'h_imply(a, b)')
 
 if __name__ == '__main__':
     unittest.main()

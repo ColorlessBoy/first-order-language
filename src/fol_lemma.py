@@ -1,4 +1,5 @@
 from __future__ import annotations
+from unittest import result
 from util import type_check
 from typing import Union
 from atom import Atom, get_atom, h_imply, h_not
@@ -41,14 +42,14 @@ def lemma1(a: Atom) -> FolLemma:
     """ Lemma: a -> a. """
     b = h_imply(a, a)
 
-    x1 = axiom1(a, a)
-    x2 = axiom1(a, b)
-    x3 = axiom2(a, b, a)
-    x4 = mp(x1, mp(x2, x3))
+    s1 = axiom1(a, a)
+    s2 = axiom1(a, b)
+    s3 = axiom2(a, b, a)
+    s4 = mp(s1, mp(s2, s3))
 
     result = FolLemma('Lemma1')
     result.add(a)
-    result.folatom = x4.getFolAtom()
+    result.folatom = s4.getFolAtom()
     return result
 
 @type_check(Atom)
@@ -56,13 +57,13 @@ def lemma2(a: Atom) -> FolLemma:
     """ Lemma: ((~a -> a) -> a). """
     b = h_not(a)
 
-    x1 = lemma1(b)
-    x2 = axiom3(a, a)
-    x3 = mp(x1, x2)
+    s1 = lemma1(b)
+    s2 = axiom3(a, a)
+    s3 = mp(s1, s2)
 
     result = FolLemma('Lemma2')
     result.add(a)
-    result.folatom = x3.getFolAtom()
+    result.folatom = s3.getFolAtom()
     return result
 
 @type_check(FolAtom)
@@ -83,14 +84,14 @@ def lemma3(x: FolAtom, y: FolAtom) -> FolLemma:
     b = x.getAtom().next[1]
     c = y.getAtom().next[1]
     
-    x1 = mp(y, axiom1(y, a))
-    x2 = axiom2(a, b, c)
-    x3 = mp(x, mp(x1, x2))
+    s1 = mp(y, axiom1(y, a))
+    s2 = axiom2(a, b, c)
+    s3 = mp(x, mp(s1, s2))
 
     result = FolLemma('Lemma3')
     result.add(x)
     result.add(y)
-    result.folatom = x3.getFolAtom()
+    result.folatom = s3.getFolAtom()
     return result
 
 @type_check(FolAtom)
@@ -109,24 +110,35 @@ def lemma4(x: FolAtom) -> FolLemma:
     b = x.getAtom().next[1].next[0]
     c = x.getAtom().next[1].next[1]
 
-    x1 = axiom1(b, a)
-    x2 = mp(x, axiom2(a, b, c))
-    y3 = lemma3(x1, x2)
+    s1 = axiom1(b, a)
+    s2 = mp(x, axiom2(a, b, c))
+    s3 = lemma3(s1, s2)
 
     result = FolLemma('Lemma4')
     result.add(x)
-    result.folatom = y3.getFolAtom()
+    result.folatom = s3.getFolAtom()
     return result
 
 @type_check(Atom)
 def lemma5(a: Atom, b: Atom) -> FolLemma:
     """ Lemma: (~a -> ~b) -> (b -> a). """
-    x1 = axiom1(b, h_not(a))
-    y2 = lemma4(axiom3(a, b))
-    y3 = lemma4(lemma3(x1, y2))
+    s1 = axiom1(b, h_not(a))
+    s2 = lemma4(axiom3(a, b))
+    s3 = lemma4(lemma3(s1, s2))
 
     result = FolLemma('Lemma5')
     result.add(a)
     result.add(b)
-    result.folatom = y3.folatom
+    result.folatom = s3.getFolAtom()
+    return result
+
+@type_check([Atom, FolAtom])
+def lemma6(x: Atom, y: FolAtom) -> FolLemma:
+    """ Lemma: \{x, y\} => (x -> y) """
+    s1 = mp(y, axiom1(y, x))
+
+    result = FolLemma('Lemma6')
+    result.add(x)
+    result.add(y)
+    result.folatom = s1.getFolAtom()
     return result
