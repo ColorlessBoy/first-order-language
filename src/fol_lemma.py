@@ -133,25 +133,25 @@ def lemma5(a: Atom, b: Atom) -> FolLemma:
     return result
 
 @type_check(FolAtom)
-def lemma6(x: FolAtom, y: FolAtom) -> FolLemma:
+def lemma6(asm: FolAtom, y: FolAtom) -> FolLemma:
     """ Deduction Theorem: Assume[a] |=> b ===> |=> h_imply(a, b). """
-    if x.name != 'Assume':
+    if asm.name != 'Assume':
         """ x needs to be Assume(z). """
         raise ValueError('Required: x.name == "Assume"')
     
-    if x == y:
-        s = lemma1(x)
+    if asm == y:
+        s = lemma1(asm)
     elif y.name in ['Axiom1', 'Axiom2', 'Axiom3', 'Assume']:
         """ y is not based on assumption x. """
-        s = mp(y, axiom1(y, x))
+        s = mp(y, axiom1(y, asm))
     else:
-        s0 = lemma6(x, y.next[0]) # h_imply(x, y.next[0]) without assumption x.
-        s1 = lemma6(x, y.next[1]) # h_imply(x, h_imply(y.next[0], y)) without assumption x.
-        s2 = axiom2(x, y.next[0], y)
+        s0 = lemma6(asm, y.next[0]) # h_imply(x, y.next[0]) without assumption x.
+        s1 = lemma6(asm, y.next[1]) # h_imply(x, h_imply(y.next[0], y)) without assumption x.
+        s2 = axiom2(asm, y.next[0], y)
         s = mp(s0, mp(s1, s2))
 
     result = FolLemma('Lemma6')
-    result.add(x)
+    result.add(asm)
     result.add(y)
     result.folatom = s.getFolAtom()
     return result
@@ -178,6 +178,101 @@ def lemma7(x: FolAtom, y: FolAtom) -> FolLemma:
     result.folatom = s.getFolAtom()
     return result
 
+@type_check(Atom)
+def lemma8(a: Atom) -> FolAtom:
+    """ h_imply(h_not(h_not(a)), a). """
+    x1 = axiom3(a, h_not(a))
+    x2 = lemma1(h_not(a))
+    x3 = lemma7(x1, x2)
+    x4 = axiom1(h_not(h_not(a)), h_not(a))
+    s = lemma3(x4, x3)
     
+    result = FolLemma('Lemma8')
+    result.add(a)
+    result.folatom = s.getFolAtom()
+    return result
+    
+@type_check(Atom)
+def lemma9(a: Atom) -> FolAtom:
+    """ h_imply(a, h_not(h_not(a))). """
+    x1 = axiom3(h_not(h_not(a)), a)
+    x2 = lemma8(h_not(a))
+    x3 = mp(x2, x1)
+    x4 = axiom1(a, h_not(h_not(h_not(a))))
+    s = lemma3(x4, x3)
 
+    result = FolLemma('Lemma9')
+    result.add(a)
+    result.folatom = s.getFolAtom()
+    return result
+
+@type_check(Atom)
+def lemma10(a: Atom, b: Atom) -> FolAtom:
+    """ h_imply(h_not(a), h_imply(a, b)). """
+    x1 = mp(assume(a), axiom1(a, h_not(b)))
+    x2 = mp(assume(h_not(a)), axiom1(h_not(a), h_not(b)))
+    x3 = axiom3(b, a)
+    x4 = mp(x1, mp(x2, x3))
+    x5 = lemma6(assume(a), x4)
+    s  = lemma6(assume(h_not(a)), x5)
+
+    result = FolLemma('Lemma10')
+    result.add(a)
+    result.add(b)
+    result.folatom = s.getFolAtom()
+    return result
     
+@type_check(Atom)
+def lemma11(a: Atom, b: Atom) -> FolAtom:
+    """ h_imply(h_imply(a, b), h_imply(h_not(b), h_not(a))). """
+    c = assume(h_imply(a, b))
+    x1 = lemma3(lemma8(a), c) # h_imply(h_not(h_not(a)), b)
+    x2 = lemma3(x1, lemma9(b)) # h_imply(h_not(h_not(a)), h_not(h_not(b)))
+    x3 = lemma5(h_not(a), h_not(b))
+    x4 = mp(x2, x3) # h_imply(h_not(b), h_not(a))
+    s = lemma6(c, x4) # remove assume
+
+    result = FolLemma('Lemma11')
+    result.add(a)
+    result.add(b)
+    result.folatom = s.getFolAtom()
+    return result
+
+@type_check(Atom)
+def lemma12(a: Atom, b: Atom) -> FolAtom:
+    """ h_imply(a, h_imply(h_not(b), h_not(h_imply(a, b)))). """
+    x1 = lemma1(h_imply(a, b))
+    x2 = lemma4(x1)
+    x3 = lemma11(h_imply(a, b), b)
+    s = lemma3(x2, x3)
+
+    result = FolLemma('Lemma12')
+    result.add(a)
+    result.add(b)
+    result.folatom = s.getFolAtom()
+    return result
+
+@type_check(FolAtom)
+def lemma13(x: FolAtom, y: FolAtom) -> FolAtom:
+    """ \{x = h_imply(a, b), y = h_imply(h_not(a), b) \} |=> b. """
+    if x.getAtom().name != 'h_imply' or y.getAtom().name != 'h_imply':
+        raise ValueError("Require: x.name == 'h_imply' and y.name == 'h_imply'")
+    if y.getAtom().next[0].name != 'h_not':
+        raise ValueError("Require: y.next[0].name != 'h_not'")
+    if x.getAtom().next[0] != y.getAtom().next[0].next[0] or x.getAtom().next[1] != y.getAtom().next[1]:
+        raise ValueError("Require: x.next[0] != y.next[0].next[0] or x.next[1] != y.next[1]")
+    
+    a, b = x.getAtom().next
+    x1 = lemma11(a, b) # (a -> b) -> (~b -> ~a)
+    x2 = mp(x, x1) # (~b -> ~ a)
+    x3 = lemma11(h_not(a), b)
+    x4 = mp(y, x3) # (~b -> ~~a)
+    x5 = axiom3(b, h_not(a))
+    x6 = mp(x4, x5)
+    s = mp(x2, x6)
+
+    result = FolLemma('Lemma13')
+    result.add(x)
+    result.add(y)
+    result.folatom = s.getFolAtom()
+    return result
