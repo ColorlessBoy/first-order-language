@@ -2,8 +2,8 @@ from __future__ import annotations
 from unittest import result
 from util import type_check
 from typing import Union
-from atom import Atom, get_atom, h_imply, h_not
-from fol_atom import FolAtom, axiom1, axiom2, axiom3, modus_ponens as mp
+from atom import Atom, h_imply, h_not
+from fol_atom import FolAtom, axiom1, axiom2, axiom3, assume, modus_ponens as mp
 
 class FolLemma:
     def __init__(self, name: str) -> None:
@@ -134,7 +134,7 @@ def lemma5(a: Atom, b: Atom) -> FolLemma:
 
 @type_check(FolAtom)
 def lemma6(x: FolAtom, y: FolAtom) -> FolLemma:
-    """ Deduction Theorem: Assume(a) |=> b ===> |=> h_imply(a, b). """
+    """ Deduction Theorem: Assume[a] |=> b ===> |=> h_imply(a, b). """
     if x.name != 'Assume':
         """ x needs to be Assume(z). """
         raise ValueError('Required: x.name == "Assume"')
@@ -155,3 +155,29 @@ def lemma6(x: FolAtom, y: FolAtom) -> FolLemma:
     result.add(y)
     result.folatom = s.getFolAtom()
     return result
+
+@type_check(FolAtom)
+def lemma7(x: FolAtom, y: FolAtom) -> FolLemma:
+    """ \{h_imply(a, h_imply(b, c)), b\} |=> h_imply(a, c). """
+    """ \{h_imply(a, h_imply(b, c)), b, Assume[a]\} |=> c. """
+
+    if x.getAtom().name != 'h_imply':
+        raise ValueError("Require: x.getAtom().name == 'h_imply'.")
+    if x.getAtom().next[1].name != 'h_imply':
+        raise ValueError("Require: x.getAtom().next[1].name == 'h_imply'.")
+    if x.getAtom().next[1].next[0] != y.getAtom():
+        raise ValueError("Require: x.getAtom().next[1].next[0] == y")
+    
+    z = assume(x.getAtom().next[0])
+    w = mp(y, mp(z, x))
+    s = lemma6(z, w)
+
+    result = FolLemma('Lemma7')
+    result.add(x)
+    result.add(y)
+    result.folatom = s.getFolAtom()
+    return result
+
+    
+
+    

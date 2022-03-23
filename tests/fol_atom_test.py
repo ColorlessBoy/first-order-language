@@ -4,7 +4,7 @@ sys.path.append('./src')
 
 import unittest
 from atom import get_atom, h_imply
-from fol_atom import axiom1, axiom2, axiom3, modus_ponens as mp, get_assume
+from fol_atom import axiom1, axiom2, axiom3, modus_ponens as mp, assume
 
 class FolAtomTest(unittest.TestCase):
 
@@ -34,9 +34,9 @@ class FolAtomTest(unittest.TestCase):
         self.assertEqual(str(x), 'Axiom3[a, b]')
         self.assertEqual(str(x.getAtom()), 'h_imply(h_imply(h_not(a), h_not(b)), h_imply(h_imply(h_not(a), b), a))')
     
-    def test_get_assume(self):
+    def test_assume(self):
         a = get_atom('a')
-        x = get_assume(a)
+        x = assume(a)
         self.assertEqual(str(x), 'Assume[a]')
         self.assertEqual(str(x.getAtom()), 'a')
 
@@ -44,7 +44,7 @@ class FolAtomTest(unittest.TestCase):
     def test_modus_ponens(self):
         a = get_atom('a')
         b = get_atom('b')
-        x = mp(get_assume(a), get_assume(h_imply(a, b)))
+        x = mp(assume(a), assume(h_imply(a, b)))
         self.assertEqual(str(x), 'ModusPonens[Assume[a], Assume[h_imply(a, b)]]')
         self.assertEqual(str(x.getAtom()), 'b')
     

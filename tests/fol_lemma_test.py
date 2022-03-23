@@ -3,7 +3,8 @@ import sys
 sys.path.append('.')
 sys.path.append('./src')
 import unittest
-from fol_atom import get_assume
+from atom import get_atom
+from fol_atom import assume
 from fol_lemma import *
 
 class FolLemmaTests(unittest.TestCase):
@@ -27,8 +28,8 @@ class FolLemmaTests(unittest.TestCase):
         a = get_atom('a')
         b = get_atom('b')
         c = get_atom('c')
-        x = get_assume(h_imply(a, b))
-        y = get_assume(h_imply(b, c))
+        x = assume(h_imply(a, b))
+        y = assume(h_imply(b, c))
         l = lemma3(x, y)
         self.assertEqual(str(l), 'Lemma3{Assume[h_imply(a, b)], Assume[h_imply(b, c)]}')
         self.assertEqual(str(l.getFolAtom()), 'ModusPonens[Assume[h_imply(a, b)], ModusPonens[ModusPonens[Assume[h_imply(b, c)], Axiom1[h_imply(b, c), a]], Axiom2[a, b, c]]]')
@@ -38,7 +39,7 @@ class FolLemmaTests(unittest.TestCase):
         a = get_atom('a')
         b = get_atom('b')
         c = get_atom('c')
-        x = get_assume(h_imply(a, h_imply(b, c)))
+        x = assume(h_imply(a, h_imply(b, c)))
         l = lemma4(x)
         self.assertEqual(str(l), 'Lemma4{Assume[h_imply(a, h_imply(b, c))]}')
         self.assertEqual(str(l.getFolAtom()), 'ModusPonens[Axiom1[b, a], ModusPonens[ModusPonens[ModusPonens[Assume[h_imply(a, h_imply(b, c))], Axiom2[a, b, c]], Axiom1[h_imply(h_imply(a, b), h_imply(a, c)), b]], Axiom2[b, h_imply(a, b), h_imply(a, c)]]]')
@@ -55,13 +56,26 @@ class FolLemmaTests(unittest.TestCase):
     def test_lemma6(self):
         a = get_atom('a')
         b = get_atom('b')
-        B = get_assume(h_imply(a, b))
-        C = get_assume(h_imply(h_imply(a, b), a))
+        B = assume(h_imply(a, b))
+        C = assume(h_imply(h_imply(a, b), a))
         D = mp(mp(B, C), B)
         l = lemma6(B, D)
         self.assertEqual(str(l), 'Lemma6{Assume[h_imply(a, b)], ModusPonens[ModusPonens[Assume[h_imply(a, b)], Assume[h_imply(h_imply(a, b), a)]], Assume[h_imply(a, b)]]}')
         self.assertEqual(str(l.getFolAtom()), 'ModusPonens[ModusPonens[ModusPonens[Axiom1[h_imply(a, b), h_imply(a, b)], ModusPonens[Axiom1[h_imply(a, b), h_imply(h_imply(a, b), h_imply(a, b))], Axiom2[h_imply(a, b), h_imply(h_imply(a, b), h_imply(a, b)), h_imply(a, b)]]], ModusPonens[ModusPonens[Assume[h_imply(h_imply(a, b), a)], Axiom1[h_imply(h_imply(a, b), a), h_imply(a, b)]], Axiom2[h_imply(a, b), h_imply(a, b), a]]], ModusPonens[ModusPonens[Axiom1[h_imply(a, b), h_imply(a, b)], ModusPonens[Axiom1[h_imply(a, b), h_imply(h_imply(a, b), h_imply(a, b))], Axiom2[h_imply(a, b), h_imply(h_imply(a, b), h_imply(a, b)), h_imply(a, b)]]], Axiom2[h_imply(a, b), a, b]]]')
         self.assertEqual(str(l.getAtom()), 'h_imply(h_imply(a, b), b)')
+    
+    def test_lemma7(self):
+        a = get_atom('a')
+        b = get_atom('b')
+        c = get_atom('c')
+
+        x = assume(h_imply(a, h_imply(b, c)))
+        y = assume(b)
+
+        l = lemma7(x, y)
+        self.assertEqual(str(l), 'Lemma7{Assume[h_imply(a, h_imply(b, c))], Assume[b]}')
+        self.assertEqual(str(l.getFolAtom()), 'ModusPonens[ModusPonens[Assume[b], Axiom1[b, a]], ModusPonens[ModusPonens[ModusPonens[Axiom1[a, a], ModusPonens[Axiom1[a, h_imply(a, a)], Axiom2[a, h_imply(a, a), a]]], ModusPonens[ModusPonens[Assume[h_imply(a, h_imply(b, c))], Axiom1[h_imply(a, h_imply(b, c)), a]], Axiom2[a, a, h_imply(b, c)]]], Axiom2[a, b, c]]]')
+        self.assertEqual(str(l.getAtom()), 'h_imply(a, c)')
 
 if __name__ == '__main__':
     unittest.main()

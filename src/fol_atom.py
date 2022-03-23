@@ -97,7 +97,7 @@ def modus_ponens(a: FolAtom, b: FolAtom) -> FolAtom:
     return result
 
 @type_check(Atom)
-def get_assume(a: Atom) -> FolAtom:
+def assume(a: Atom) -> FolAtom:
     """ Construct assumption. """
     result = FolAtom('Assume')
     result.add(a)
