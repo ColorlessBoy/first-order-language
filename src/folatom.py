@@ -106,7 +106,7 @@ def assume(a: Atom) -> FolAtom:
 
 @type_check(Atom)
 def land(a: Atom, b: Atom) -> Atom:
-    """ Logic and: a /\ b"""
+    """ Logic and: a & b"""
     result = FolAtom('LogicAnd')
     result.add(a)
     result.add(b)
@@ -115,7 +115,7 @@ def land(a: Atom, b: Atom) -> Atom:
 
 @type_check(Atom)
 def lor(a: Atom, b: Atom) -> Atom:
-    """ Logic or: a \/ b"""
+    """ Logic or: a | b"""
     result = FolAtom('LogicOr')
     result.add(a)
     result.add(b)

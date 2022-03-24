@@ -1,10 +1,12 @@
 from __future__ import annotations
+from lib2to3.pgen2.token import AT
+from operator import mod
 from unicodedata import name
 from unittest import result
 from util import type_check
 from typing import Union
 from atom import Atom, h_imply, h_not
-from folatom import FolAtom, axiom1, axiom2, axiom3, assume, modus_ponens as mp
+from folatom import *
 
 class FolLemma:
     def __init__(self, name: str) -> None:
@@ -39,45 +41,27 @@ class FolLemma:
         return result
 
 @type_check(Atom)
-def lemma1(a: Atom) -> FolLemma:
-    """ Lemma: |=> a -> a. """
+def reflexive(a: Atom) -> FolLemma:
+    """ |=> a -> a. """
     b = h_imply(a, a)
 
     s1 = axiom1(a, a)
     s2 = axiom1(a, b)
     s3 = axiom2(a, b, a)
-    s4 = mp(s1, mp(s2, s3))
+    s4 = modus_ponens(s1, modus_ponens(s2, s3))
 
-    result = FolLemma('Lemma1')
+    result = FolLemma('Reflexive')
     result.add(a)
     result.folatom = s4.getFolAtom()
     return result
 
-@type_check(Atom)
-def lemma2(a: Atom) -> FolLemma:
-    """ Lemma: |=> ((~a -> a) -> a). """
-    b = h_not(a)
-
-    s1 = lemma1(b)
-    s2 = axiom3(a, a)
-    s3 = mp(s1, s2)
-
-    result = FolLemma('Lemma2')
-    result.add(a)
-    result.folatom = s3.getFolAtom()
-    return result
-
 @type_check(FolAtom)
-def lemma3(x: FolAtom, y: FolAtom) -> FolLemma:
-    """ Lemma: {x = (a -> b), y = (b -> c)} |=> (a -> c). """
+def transitive(x: FolAtom, y: FolAtom) -> FolLemma:
+    """ {x = (a -> b), y = (b -> c)} |=> (a -> c). """
     if x.getAtom().name != 'h_imply':
         raise ValueError("Require: x.getAtom().name == 'h_imply'.")
-    if len(x.getAtom().next) != 2:
-        raise ValueError("Require: len(x.getAtom().next) == 2.")
     if y.getAtom().name != 'h_imply':
         raise ValueError("Require: y.getAtom().name == 'h_imply'.")
-    if len(y.getAtom().next) != 2:
-        raise ValueError("Require: len(y.getAtom().next) == 2.")
     if x.getAtom().next[1] != y.getAtom().next[0]:
         raise ValueError("Require: x.getAtom().next[1] == y.getAtom().next[0].")
     
@@ -85,82 +69,65 @@ def lemma3(x: FolAtom, y: FolAtom) -> FolLemma:
     b = x.getAtom().next[1]
     c = y.getAtom().next[1]
     
-    s1 = mp(y, axiom1(y, a))
+    s1 = modus_ponens(y, axiom1(y, a))
     s2 = axiom2(a, b, c)
-    s3 = mp(x, mp(s1, s2))
+    s3 = modus_ponens(x, modus_ponens(s1, s2))
 
-    result = FolLemma('Lemma3')
+    result = FolLemma('Transitive')
     result.add(x)
     result.add(y)
     result.folatom = s3.getFolAtom()
     return result
 
 @type_check(FolAtom)
-def lemma4(x: FolAtom) -> FolLemma:
-    """ Lemma: {x = a -> (b -> c)} |=> b -> (a -> c). """
+def exchange(x: FolAtom) -> FolLemma:
+    """ {x = a -> (b -> c)} |=> b -> (a -> c). """
     if x.getAtom().name != 'h_imply':
         raise ValueError("Require: x.getAtom().name == 'h_imply'.")
-    if len(x.getAtom().next) != 2:
-        raise ValueError("Require: len(x.getAtom().next) == 2.")
     if x.getAtom().next[1].name != 'h_imply':
         raise ValueError("Require: x.getAtom().next[1].name == 'h_imply'.")
-    if len(x.getAtom().next[1].next) != 2:
-        raise ValueError("Require: len(x.getAtom().next[1].next) == 2.")
     
     a = x.getAtom().next[0]
     b = x.getAtom().next[1].next[0]
     c = x.getAtom().next[1].next[1]
 
     s1 = axiom1(b, a)
-    s2 = mp(x, axiom2(a, b, c))
-    s3 = lemma3(s1, s2)
+    s2 = modus_ponens(x, axiom2(a, b, c))
+    s3 = transitive(s1, s2)
 
-    result = FolLemma('Lemma4')
+    result = FolLemma('Exchange')
     result.add(x)
     result.folatom = s3.getFolAtom()
     return result
 
-@type_check(Atom)
-def lemma5(a: Atom, b: Atom) -> FolLemma:
-    """ Lemma: |=> (~a -> ~b) -> (b -> a). """
-    s1 = axiom1(b, h_not(a))
-    s2 = lemma4(axiom3(a, b))
-    s3 = lemma4(lemma3(s1, s2))
-
-    result = FolLemma('Lemma5')
-    result.add(a)
-    result.add(b)
-    result.folatom = s3.getFolAtom()
-    return result
-
 @type_check(FolAtom)
-def lemma6(asm: FolAtom, y: FolAtom) -> FolLemma:
+def deduction(assumption: FolAtom, y: FolAtom) -> FolLemma:
     """ Deduction Theorem: Assume[a] |=> b ===> |=> h_imply(a, b). """
-    if asm.name != 'Assume':
+    if assumption.name != 'Assume':
         """ x needs to be Assume(z). """
         raise ValueError('Required: x.name == "Assume"')
     
-    if asm == y:
-        s = lemma1(asm)
+    if assumption == y:
+        s = reflexive(assumption)
     elif y.name in ['Axiom1', 'Axiom2', 'Axiom3', 'Assume']:
         """ y is not based on assumption x. """
-        s = mp(y, axiom1(y, asm))
+        s = modus_ponens(y, axiom1(y, assumption))
     else:
-        s0 = lemma6(asm, y.next[0]) # h_imply(x, y.next[0]) without assumption x.
-        s1 = lemma6(asm, y.next[1]) # h_imply(x, h_imply(y.next[0], y)) without assumption x.
-        s2 = axiom2(asm, y.next[0], y)
-        s = mp(s0, mp(s1, s2))
+        s0 = deduction(assumption, y.next[0]) # h_imply(x, y.next[0]) without assumption x.
+        s1 = deduction(assumption, y.next[1]) # h_imply(x, h_imply(y.next[0], y)) without assumption x.
+        s2 = axiom2(assumption, y.next[0], y)
+        s = modus_ponens(s0, modus_ponens(s1, s2))
 
-    result = FolLemma('Lemma6')
-    result.add(asm)
+    result = FolLemma('Deduction')
+    result.add(assumption)
     result.add(y)
     result.folatom = s.getFolAtom()
     return result
 
 @type_check(FolAtom)
-def lemma7(x: FolAtom, y: FolAtom) -> FolLemma:
-    """ \{h_imply(a, h_imply(b, c)), b\} |=> h_imply(a, c). """
-    """ \{h_imply(a, h_imply(b, c)), b, Assume[a]\} |=> c. """
+def reduction(x: FolAtom, y: FolAtom) -> FolLemma:
+    """ {h_imply(a, h_imply(b, c)), b} |=> h_imply(a, c). """
+    """ {h_imply(a, h_imply(b, c)), b, Assume[a]} |=> c. """
 
     if x.getAtom().name != 'h_imply':
         raise ValueError("Require: x.getAtom().name == 'h_imply'.")
@@ -170,92 +137,91 @@ def lemma7(x: FolAtom, y: FolAtom) -> FolLemma:
         raise ValueError("Require: x.getAtom().next[1].next[0] == y")
     
     z = assume(x.getAtom().next[0])
-    w = mp(y, mp(z, x))
-    s = lemma6(z, w)
+    w = modus_ponens(y, modus_ponens(z, x))
+    s = deduction(z, w)
 
-    result = FolLemma('Lemma7')
+    result = FolLemma('Reduction')
     result.add(x)
     result.add(y)
     result.folatom = s.getFolAtom()
     return result
 
 @type_check(Atom)
-def lemma8(a: Atom) -> FolAtom:
-    """ h_imply(h_not(h_not(a)), a). """
+def doublenot1(a: Atom) -> FolAtom:
+    """ ~~a -> a. """
     x1 = axiom3(a, h_not(a))
-    x2 = lemma1(h_not(a))
-    x3 = lemma7(x1, x2)
+    x2 = reflexive(h_not(a))
+    x3 = reduction(x1, x2)
     x4 = axiom1(h_not(h_not(a)), h_not(a))
-    s = lemma3(x4, x3)
+    s = transitive(x4, x3)
     
-    result = FolLemma('Lemma8')
+    result = FolLemma('DoubleNot1')
     result.add(a)
     result.folatom = s.getFolAtom()
     return result
     
 @type_check(Atom)
-def lemma9(a: Atom) -> FolAtom:
-    """ h_imply(a, h_not(h_not(a))). """
+def doublenot2(a: Atom) -> FolAtom:
+    """ a -> ~~a. """
     x1 = axiom3(h_not(h_not(a)), a)
-    x2 = lemma8(h_not(a))
-    x3 = mp(x2, x1)
+    x2 = doublenot1(h_not(a))
+    x3 = modus_ponens(x2, x1)
     x4 = axiom1(a, h_not(h_not(h_not(a))))
-    s = lemma3(x4, x3)
+    s = transitive(x4, x3)
 
-    result = FolLemma('Lemma9')
+    result = FolLemma('DoubleNot2')
     result.add(a)
     result.folatom = s.getFolAtom()
     return result
 
 @type_check(Atom)
 def lemma10(a: Atom, b: Atom) -> FolAtom:
-    """ h_imply(h_not(a), h_imply(a, b)). """
-    x1 = mp(assume(a), axiom1(a, h_not(b)))
-    x2 = mp(assume(h_not(a)), axiom1(h_not(a), h_not(b)))
+    """ ~a -> (a -> b). """
+    x1 = modus_ponens(assume(a), axiom1(a, h_not(b)))
+    x2 = modus_ponens(assume(h_not(a)), axiom1(h_not(a), h_not(b)))
     x3 = axiom3(b, a)
-    x4 = mp(x1, mp(x2, x3))
-    x5 = lemma6(assume(a), x4)
-    s  = lemma6(assume(h_not(a)), x5)
+    x4 = modus_ponens(x1, modus_ponens(x2, x3))
+    x5 = deduction(assume(a), x4)
+    s  = deduction(assume(h_not(a)), x5)
 
     result = FolLemma('Lemma10')
     result.add(a)
     result.add(b)
     result.folatom = s.getFolAtom()
     return result
-    
-@type_check(Atom)
-def lemma11(a: Atom, b: Atom) -> FolAtom:
-    """ h_imply(h_imply(a, b), h_imply(h_not(b), h_not(a))). """
-    c = assume(h_imply(a, b))
-    x1 = lemma3(lemma8(a), c) # h_imply(h_not(h_not(a)), b)
-    x2 = lemma3(x1, lemma9(b)) # h_imply(h_not(h_not(a)), h_not(h_not(b)))
-    x3 = lemma5(h_not(a), h_not(b))
-    x4 = mp(x2, x3) # h_imply(h_not(b), h_not(a))
-    s = lemma6(c, x4) # remove assume
 
-    result = FolLemma('Lemma11')
+@type_check(Atom)
+def contraposition1(a: Atom, b: Atom) -> FolLemma:
+    """ |=> (~a -> ~b) -> (b -> a). """
+    s1 = axiom1(b, h_not(a))
+    s2 = exchange(axiom3(a, b))
+    s3 = exchange(transitive(s1, s2))
+
+    result = FolLemma('Contraposition1')
     result.add(a)
     result.add(b)
-    result.folatom = s.getFolAtom()
+    result.folatom = s3.getFolAtom()
     return result
-
+    
 @type_check(Atom)
-def lemma12(a: Atom, b: Atom) -> FolAtom:
-    """ h_imply(a, h_imply(h_not(b), h_not(h_imply(a, b)))). """
-    x1 = lemma1(h_imply(a, b))
-    x2 = lemma4(x1)
-    x3 = lemma11(h_imply(a, b), b)
-    s = lemma3(x2, x3)
+def contraposition2(a: Atom, b: Atom) -> FolAtom:
+    """ (a -> b) -> (~b -> ~a). """
+    c = assume(h_imply(a, b))
+    x1 = transitive(doublenot1(a), c) # h_imply(h_not(h_not(a)), b)
+    x2 = transitive(x1, doublenot2(b)) # h_imply(h_not(h_not(a)), h_not(h_not(b)))
+    x3 = contraposition1(h_not(a), h_not(b))
+    x4 = modus_ponens(x2, x3) # h_imply(h_not(b), h_not(a))
+    s = deduction(c, x4) # remove assume
 
-    result = FolLemma('Lemma12')
+    result = FolLemma('Contraposition2')
     result.add(a)
     result.add(b)
     result.folatom = s.getFolAtom()
     return result
 
 @type_check(FolAtom)
-def lemma13(x: FolAtom, y: FolAtom) -> FolAtom:
-    """ \{x = h_imply(a, b), y = h_imply(h_not(a), b) \} |=> b. """
+def contradiction(x: FolAtom, y: FolAtom) -> FolAtom:
+    """ {a -> b,  h_not(a) -> b} |=> b. """
     if x.getAtom().name != 'h_imply' or y.getAtom().name != 'h_imply':
         raise ValueError("Require: x.name == 'h_imply' and y.name == 'h_imply'")
     if y.getAtom().next[0].name != 'h_not':
@@ -264,34 +230,115 @@ def lemma13(x: FolAtom, y: FolAtom) -> FolAtom:
         raise ValueError("Require: x.next[0] != y.next[0].next[0] or x.next[1] != y.next[1]")
     
     a, b = x.getAtom().next
-    x1 = lemma11(a, b) # (a -> b) -> (~b -> ~a)
-    x2 = mp(x, x1) # (~b -> ~ a)
-    x3 = lemma11(h_not(a), b)
-    x4 = mp(y, x3) # (~b -> ~~a)
+    x1 = contraposition2(a, b) # (a -> b) -> (~b -> ~a)
+    x2 = modus_ponens(x, x1) # (~b -> ~ a)
+    x3 = contraposition2(h_not(a), b)
+    x4 = modus_ponens(y, x3) # (~b -> ~~a)
     x5 = axiom3(b, h_not(a))
-    x6 = mp(x4, x5)
-    s = mp(x2, x6)
+    x6 = modus_ponens(x4, x5)
+    s = modus_ponens(x2, x6)
 
-    result = FolLemma('Lemma13')
+    result = FolLemma('Contradiction')
     result.add(x)
     result.add(y)
     result.folatom = s.getFolAtom()
     return result
 
-@type_check([Atom, FolAtom])
-def lemma14(a: Atom, x: FolAtom) -> FolAtom:
-    """|=> a -> (a \/ b) """
-    if x.name != 'LogicOr':
-        raise ValueError("Requrie: x.name == 'LogicOr'.")
-    if a != x.next[0]:
-        raise ValueError("Require: a == b.next[0].")
-    
-    b = x.next[1]
-    x1 = lemma10(h_not(a), b)
-    x2 = lemma9(a)
-    s = lemma3(x2, x1)
-    result = FolLemma('Lemma14')
+@type_check(Atom)
+def orinductionleft(a: Atom, b: Atom) -> FolAtom:
+    """|=> a -> (a | b) """
+
+    x1 = modus_ponens(assume(h_not(a)), axiom1(h_not(a), h_not(b)))
+    x2 = modus_ponens(assume(h_not(h_not(a))), axiom1(h_not(h_not(a)), h_not(b)))
+    x3 = axiom3(b, h_not(a))
+    x4 = modus_ponens(x1, modus_ponens(x2, x3))
+    x5 = deduction(assume(h_not(a)), x4)
+    x6  = deduction(assume(h_not(h_not(a))), x5)
+
+    x7 = doublenot2(a)
+    s = transitive(x7, x6)
+
+    result = FolLemma('OrInductionLeft')
     result.add(a)
     result.add(b)
     result.folatom = s.getFolAtom()
     return result
+
+@type_check(Atom)
+def orinductionright(a: Atom, b: Atom) -> FolAtom:
+    """|=> a -> (b | a) """
+    s = axiom1(a, h_not(b))
+    result = FolLemma('OrInductionRight')
+    result.add(a)
+    result.add(b)
+    result.folatom = s.getFolAtom()
+    return result
+
+@type_check(Atom)
+def orcommutative(a: Atom, b: Atom) -> FolAtom:
+    """|=> (a | b) -> (b | a). """
+    x1 = assume(h_imply(h_not(a), b))
+    x2 = modus_ponens(x1, contraposition2(h_not(a), b)) # h_imply(h_not(b), h_not(h_not(a)))
+    x3 = transitive(x2, doublenot1(a)) # h_imply(h_not(b), a)
+    s = deduction(x1, x3) # h_imply(h_imply(h_not(a), b), h_imply(h_not(b), a))
+
+    result = FolLemma('OrCommutative')
+    result.add(a)
+    result.add(b)
+    result.folatom = s.getFolAtom()
+    return result
+
+@type_check(Atom)
+def andreductionleft(a: Atom, b: Atom) -> FolAtom:
+    """ |=> (a & b) -> a. """
+    x1 = modus_ponens(assume(a), axiom1(a, h_not(h_not(b))))
+    x2 = modus_ponens(assume(h_not(a)), axiom1(h_not(a), h_not(h_not(b))))
+    x3 = axiom3(h_not(b), a)
+    x4 = modus_ponens(x1, modus_ponens(x2, x3))
+    x5 = deduction(assume(a), x4)
+    x6  = deduction(assume(h_not(a)), x5)
+
+    x7 = contraposition2(h_not(a), h_imply(a, h_not(b)))
+    x8 = modus_ponens(x6, x7) # h_imply(h_not(h_imply(a, h_not(b))), h_not(h_not(a)))
+    x9 = doublenot1(a) # h_imply(h_not(h_not(a)), a)
+    s = transitive(x8, x9)
+
+    result = FolLemma('AndReductionLeft')
+    result.add(a)
+    result.add(b)
+    result.folatom = s.getFolAtom()
+    return result
+
+@type_check(Atom)
+def andreductionright(a: Atom, b: Atom) -> FolAtom:
+    """ |=> (a & b) -> b. """
+    x1 = axiom1(h_not(b), a)
+    x2 = contraposition2(h_not(b), h_imply(a, h_not(b)))
+    x3 = modus_ponens(x1, x2) # h_imply(h_not(h_imply(a, h_not(b))), h_not(h_not(b)))
+    x4 = doublenot1(b) 
+    s = transitive(x3, x4)
+
+    result = FolLemma('AndReductionRight')
+    result.add(a)
+    result.add(b)
+    result.folatom = s.getFolAtom()
+    return result
+
+@type_check(FolAtom)
+def andintroduction(x: FolAtom, y: FolAtom) -> FolAtom:
+    """ {x, y} |=> x & y. """
+
+    x1 = reflexive(h_imply(x, h_not(y)))
+    x2 = exchange(x1)
+    x3 = contraposition2(h_imply(x, h_not(y)), h_not(y))
+    x4 = transitive(x2, x3) # x -> (~~y -> ~(x -> ~y))
+    x5 = modus_ponens(x, x4) # ~~y -> ~(x -> ~y)
+    x6 = modus_ponens(y, doublenot2(y)) # ~~y
+    s  = modus_ponens(x6, x5) # ~(x -> ~y) = x /\ y
+
+    result = FolLemma('AndIntroduction')
+    result.add(x)
+    result.add(y)
+    result.folatom = s.getFolAtom()
+    return result
+    
