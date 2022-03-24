@@ -140,6 +140,18 @@ class FolLemmaTests(unittest.TestCase):
         l = andintroduction(x, y)
         self.assertEqual(str(l), 'AndIntroduction{Assume[a], Assume[b]}')
         self.assertEqual(str(l.getAtom()), 'h_not(h_imply(a, h_not(b)))')
+    
+    def test_andpair(self):
+        a = get_atom('a')
+        b = get_atom('b')
+        c = get_atom('c')
+
+        x = assume(h_imply(a, c))
+        y = assume(h_imply(b, c))
+        l = andpair(x, y)
+        self.assertEqual(str(l), 'AndPair{Assume[h_imply(a, c)], Assume[h_imply(b, c)]}')
+        self.assertEqual(str(l.getAtom()), 'h_imply(h_imply(h_not(a), b), c)')
+        
 
 if __name__ == '__main__':
     unittest.main()

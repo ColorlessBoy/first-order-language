@@ -175,22 +175,6 @@ def doublenot2(a: Atom) -> FolAtom:
     return result
 
 @type_check(Atom)
-def lemma10(a: Atom, b: Atom) -> FolAtom:
-    """ ~a -> (a -> b). """
-    x1 = modus_ponens(assume(a), axiom1(a, h_not(b)))
-    x2 = modus_ponens(assume(h_not(a)), axiom1(h_not(a), h_not(b)))
-    x3 = axiom3(b, a)
-    x4 = modus_ponens(x1, modus_ponens(x2, x3))
-    x5 = deduction(assume(a), x4)
-    s  = deduction(assume(h_not(a)), x5)
-
-    result = FolLemma('Lemma10')
-    result.add(a)
-    result.add(b)
-    result.folatom = s.getFolAtom()
-    return result
-
-@type_check(Atom)
 def contraposition1(a: Atom, b: Atom) -> FolLemma:
     """ |=> (~a -> ~b) -> (b -> a). """
     s1 = axiom1(b, h_not(a))
@@ -342,3 +326,25 @@ def andintroduction(x: FolAtom, y: FolAtom) -> FolAtom:
     result.folatom = s.getFolAtom()
     return result
     
+@type_check(FolAtom)
+def andpair(x: FolAtom, y: FolAtom) -> FolAtom:
+    """ {a -> c, b -> c} |=> (a & b -> c) """
+    if x.getAtom().name != 'h_imply' or y.getAtom().name != 'h_imply':
+        raise ValueError("Require: x.getAtom().name != 'h_imply' or y.getAtom().name != 'h_imply'")
+    if x.getAtom().next[1] != y.getAtom().next[1]:
+        raise ValueError("Require: x.getAtom().next[1] != y.getAtom().next[1]")
+    
+    a = x.getAtom().next[0]
+    b = y.getAtom().next[0]
+    c = y.getAtom().next[1]
+
+    x1 = assume(h_imply(h_not(a), b))
+    x2 = transitive(x1, y) # ~a -> c
+    x3 = contradiction(x, x2) # c
+    s = deduction(x1, x3)
+
+    result = FolLemma('AndPair')
+    result.add(x)
+    result.add(y)
+    result.folatom = s.getFolAtom()
+    return result
