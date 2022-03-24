@@ -1,9 +1,10 @@
 from __future__ import annotations
+from unicodedata import name
 from unittest import result
 from util import type_check
 from typing import Union
 from atom import Atom, h_imply, h_not
-from fol_atom import FolAtom, axiom1, axiom2, axiom3, assume, modus_ponens as mp
+from folatom import FolAtom, axiom1, axiom2, axiom3, assume, modus_ponens as mp
 
 class FolLemma:
     def __init__(self, name: str) -> None:
@@ -274,5 +275,23 @@ def lemma13(x: FolAtom, y: FolAtom) -> FolAtom:
     result = FolLemma('Lemma13')
     result.add(x)
     result.add(y)
+    result.folatom = s.getFolAtom()
+    return result
+
+@type_check([Atom, FolAtom])
+def lemma14(a: Atom, x: FolAtom) -> FolAtom:
+    """|=> a -> (a \/ b) """
+    if x.name != 'LogicOr':
+        raise ValueError("Requrie: x.name == 'LogicOr'.")
+    if a != x.next[0]:
+        raise ValueError("Require: a == b.next[0].")
+    
+    b = x.next[1]
+    x1 = lemma10(h_not(a), b)
+    x2 = lemma9(a)
+    s = lemma3(x2, x1)
+    result = FolLemma('Lemma14')
+    result.add(a)
+    result.add(b)
     result.folatom = s.getFolAtom()
     return result

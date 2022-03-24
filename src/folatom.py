@@ -103,3 +103,30 @@ def assume(a: Atom) -> FolAtom:
     result.add(a)
     result.atom = a
     return result
+
+@type_check(Atom)
+def land(a: Atom, b: Atom) -> Atom:
+    """ Logic and: a /\ b"""
+    result = FolAtom('LogicAnd')
+    result.add(a)
+    result.add(b)
+    result.atom = h_not(h_imply(a, h_not(b)))
+    return result
+
+@type_check(Atom)
+def lor(a: Atom, b: Atom) -> Atom:
+    """ Logic or: a \/ b"""
+    result = FolAtom('LogicOr')
+    result.add(a)
+    result.add(b)
+    result.atom = h_imply(h_not(a), b)
+    return result
+
+@type_check(Atom)
+def liif(a: Atom, b: Atom) -> Atom:
+    """ Logic if-and-only-if: a <-> b"""
+    result = FolAtom('LogicIIf')
+    result.add(a)
+    result.add(b)
+    result.atom = land(h_imply(a, b), h_imply(b, a))
+    return result

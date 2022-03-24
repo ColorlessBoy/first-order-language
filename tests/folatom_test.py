@@ -4,7 +4,7 @@ sys.path.append('./src')
 
 import unittest
 from atom import get_atom, h_imply
-from fol_atom import axiom1, axiom2, axiom3, modus_ponens as mp, assume
+from folatom import axiom1, axiom2, axiom3, modus_ponens as mp, assume
 
 class FolAtomTest(unittest.TestCase):
 

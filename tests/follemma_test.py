@@ -4,8 +4,8 @@ sys.path.append('.')
 sys.path.append('./src')
 import unittest
 from atom import get_atom
-from fol_atom import assume
-from fol_lemma import *
+from folatom import *
+from follemma import *
 
 class FolLemmaTests(unittest.TestCase):
 
@@ -120,6 +120,14 @@ class FolLemmaTests(unittest.TestCase):
         l = lemma13(x, y)
         self.assertEqual(str(l), 'Lemma13{Assume[h_imply(a, b)], Assume[h_imply(h_not(a), b)]}')
         self.assertEqual(str(l.getAtom()), 'b')
+    
+    def test_lemma14(self):
+        a = get_atom('a')
+        b = get_atom('b')
+        x = lor(a, b)
+        l = lemma14(a, x)
+        self.assertEqual(str(l), 'Lemma14{a, b}')
+        self.assertEqual(str(l.getAtom()), 'h_imply(a, h_imply(h_not(a), b))')
 
 if __name__ == '__main__':
     unittest.main()
