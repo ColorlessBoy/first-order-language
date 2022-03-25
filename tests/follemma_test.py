@@ -61,16 +61,16 @@ class FolLemmaTests(unittest.TestCase):
         self.assertEqual(str(l.getFolAtom()), 'ModusPonens[ModusPonens[Assume[b], Axiom1[b, a]], ModusPonens[ModusPonens[ModusPonens[Axiom1[a, a], ModusPonens[Axiom1[a, h_imply(a, a)], Axiom2[a, h_imply(a, a), a]]], ModusPonens[ModusPonens[Assume[h_imply(a, h_imply(b, c))], Axiom1[h_imply(a, h_imply(b, c)), a]], Axiom2[a, a, h_imply(b, c)]]], Axiom2[a, b, c]]]')
         self.assertEqual(str(l.getAtom()), 'h_imply(a, c)')
 
-    def test_doublenot1(self):
+    def test_fromdoublenot(self):
         a = get_atom('a')
-        l = doublenot1(a)
+        l = fromdoublenot(a)
         self.assertEqual(str(l), 'DoubleNot1{a}')
         self.assertEqual(str(l.getFolAtom()), 'ModusPonens[Axiom1[h_not(h_not(a)), h_not(a)], ModusPonens[ModusPonens[ModusPonens[ModusPonens[ModusPonens[Axiom1[h_not(a), h_not(a)], Axiom1[h_imply(h_not(a), h_imply(h_not(a), h_not(a))), h_imply(h_not(a), h_not(h_not(a)))]], ModusPonens[ModusPonens[ModusPonens[Axiom1[h_not(a), h_imply(h_not(a), h_not(a))], Axiom1[h_imply(h_not(a), h_imply(h_imply(h_not(a), h_not(a)), h_not(a))), h_imply(h_not(a), h_not(h_not(a)))]], ModusPonens[ModusPonens[Axiom2[h_not(a), h_imply(h_not(a), h_not(a)), h_not(a)], Axiom1[h_imply(h_imply(h_not(a), h_imply(h_imply(h_not(a), h_not(a)), h_not(a))), h_imply(h_imply(h_not(a), h_imply(h_not(a), h_not(a))), h_imply(h_not(a), h_not(a)))), h_imply(h_not(a), h_not(h_not(a)))]], Axiom2[h_imply(h_not(a), h_not(h_not(a))), h_imply(h_not(a), h_imply(h_imply(h_not(a), h_not(a)), h_not(a))), h_imply(h_imply(h_not(a), h_imply(h_not(a), h_not(a))), h_imply(h_not(a), h_not(a)))]]], Axiom2[h_imply(h_not(a), h_not(h_not(a))), h_imply(h_not(a), h_imply(h_not(a), h_not(a))), h_imply(h_not(a), h_not(a))]]], ModusPonens[ModusPonens[ModusPonens[Axiom1[h_imply(h_not(a), h_not(h_not(a))), h_imply(h_not(a), h_not(h_not(a)))], ModusPonens[Axiom1[h_imply(h_not(a), h_not(h_not(a))), h_imply(h_imply(h_not(a), h_not(h_not(a))), h_imply(h_not(a), h_not(h_not(a))))], Axiom2[h_imply(h_not(a), h_not(h_not(a))), h_imply(h_imply(h_not(a), h_not(h_not(a))), h_imply(h_not(a), h_not(h_not(a)))), h_imply(h_not(a), h_not(h_not(a)))]]], ModusPonens[ModusPonens[Axiom3[a, h_not(a)], Axiom1[h_imply(h_imply(h_not(a), h_not(h_not(a))), h_imply(h_imply(h_not(a), h_not(a)), a)), h_imply(h_not(a), h_not(h_not(a)))]], Axiom2[h_imply(h_not(a), h_not(h_not(a))), h_imply(h_not(a), h_not(h_not(a))), h_imply(h_imply(h_not(a), h_not(a)), a)]]], Axiom2[h_imply(h_not(a), h_not(h_not(a))), h_imply(h_not(a), h_not(a)), a]]], Axiom1[h_imply(h_imply(h_not(a), h_not(h_not(a))), a), h_not(h_not(a))]], Axiom2[h_not(h_not(a)), h_imply(h_not(a), h_not(h_not(a))), a]]]')
         self.assertEqual(str(l.getAtom()), 'h_imply(h_not(h_not(a)), a)')
 
-    def test_doublenot2(self):
+    def test_todoublenot(self):
         a = get_atom('a')
-        l = doublenot2(a)
+        l = todoublenot(a)
         self.assertEqual(str(l), 'DoubleNot2{a}')
         self.assertEqual(str(l.getFolAtom()), 'ModusPonens[Axiom1[a, h_not(h_not(h_not(a)))], ModusPonens[ModusPonens[ModusPonens[ModusPonens[Axiom1[h_not(h_not(h_not(a))), h_not(h_not(a))], ModusPonens[ModusPonens[ModusPonens[ModusPonens[ModusPonens[Axiom1[h_not(h_not(a)), h_not(h_not(a))], Axiom1[h_imply(h_not(h_not(a)), h_imply(h_not(h_not(a)), h_not(h_not(a)))), h_imply(h_not(h_not(a)), h_not(h_not(h_not(a))))]], ModusPonens[ModusPonens[ModusPonens[Axiom1[h_not(h_not(a)), h_imply(h_not(h_not(a)), h_not(h_not(a)))], Axiom1[h_imply(h_not(h_not(a)), h_imply(h_imply(h_not(h_not(a)), h_not(h_not(a))), h_not(h_not(a)))), h_imply(h_not(h_not(a)), h_not(h_not(h_not(a))))]], ModusPonens[ModusPonens[Axiom2[h_not(h_not(a)), h_imply(h_not(h_not(a)), h_not(h_not(a))), h_not(h_not(a))], Axiom1[h_imply(h_imply(h_not(h_not(a)), h_imply(h_imply(h_not(h_not(a)), h_not(h_not(a))), h_not(h_not(a)))), h_imply(h_imply(h_not(h_not(a)), h_imply(h_not(h_not(a)), h_not(h_not(a)))), h_imply(h_not(h_not(a)), h_not(h_not(a))))), h_imply(h_not(h_not(a)), h_not(h_not(h_not(a))))]], Axiom2[h_imply(h_not(h_not(a)), h_not(h_not(h_not(a)))), h_imply(h_not(h_not(a)), h_imply(h_imply(h_not(h_not(a)), h_not(h_not(a))), h_not(h_not(a)))), h_imply(h_imply(h_not(h_not(a)), h_imply(h_not(h_not(a)), h_not(h_not(a)))), h_imply(h_not(h_not(a)), h_not(h_not(a))))]]], Axiom2[h_imply(h_not(h_not(a)), h_not(h_not(h_not(a)))), h_imply(h_not(h_not(a)), h_imply(h_not(h_not(a)), h_not(h_not(a)))), h_imply(h_not(h_not(a)), h_not(h_not(a)))]]], ModusPonens[ModusPonens[ModusPonens[Axiom1[h_imply(h_not(h_not(a)), h_not(h_not(h_not(a)))), h_imply(h_not(h_not(a)), h_not(h_not(h_not(a))))], ModusPonens[Axiom1[h_imply(h_not(h_not(a)), h_not(h_not(h_not(a)))), h_imply(h_imply(h_not(h_not(a)), h_not(h_not(h_not(a)))), h_imply(h_not(h_not(a)), h_not(h_not(h_not(a)))))], Axiom2[h_imply(h_not(h_not(a)), h_not(h_not(h_not(a)))), h_imply(h_imply(h_not(h_not(a)), h_not(h_not(h_not(a)))), h_imply(h_not(h_not(a)), h_not(h_not(h_not(a))))), h_imply(h_not(h_not(a)), h_not(h_not(h_not(a))))]]], ModusPonens[ModusPonens[Axiom3[h_not(a), h_not(h_not(a))], Axiom1[h_imply(h_imply(h_not(h_not(a)), h_not(h_not(h_not(a)))), h_imply(h_imply(h_not(h_not(a)), h_not(h_not(a))), h_not(a))), h_imply(h_not(h_not(a)), h_not(h_not(h_not(a))))]], Axiom2[h_imply(h_not(h_not(a)), h_not(h_not(h_not(a)))), h_imply(h_not(h_not(a)), h_not(h_not(h_not(a)))), h_imply(h_imply(h_not(h_not(a)), h_not(h_not(a))), h_not(a))]]], Axiom2[h_imply(h_not(h_not(a)), h_not(h_not(h_not(a)))), h_imply(h_not(h_not(a)), h_not(h_not(a))), h_not(a)]]], Axiom1[h_imply(h_imply(h_not(h_not(a)), h_not(h_not(h_not(a)))), h_not(a)), h_not(h_not(h_not(a)))]], Axiom2[h_not(h_not(h_not(a))), h_imply(h_not(h_not(a)), h_not(h_not(h_not(a)))), h_not(a)]]], Axiom3[h_not(h_not(a)), a]], Axiom1[h_imply(h_imply(h_not(h_not(h_not(a))), a), h_not(h_not(a))), a]], Axiom2[a, h_imply(h_not(h_not(h_not(a))), a), h_not(h_not(a))]]]')
         self.assertEqual(str(l.getAtom()), 'h_imply(a, h_not(h_not(a)))')
@@ -98,6 +98,14 @@ class FolLemmaTests(unittest.TestCase):
         l = contradiction(x, y)
         self.assertEqual(str(l), 'Contradiction{Assume[h_imply(a, b)], Assume[h_imply(h_not(a), b)]}')
         self.assertEqual(str(l.getAtom()), 'b')
+    
+    def test_negativeimply(self):
+        a = get_atom('a')
+        b = get_atom('b')
+        l = negativeimply(a, b)
+        self.assertEqual(str(l), 'NegativeImply{a, b}')
+        self.assertEqual(str(l.getAtom()), 'h_imply(h_not(a), h_imply(a, b))')
+
     
     def test_orinductionleft(self):
         a = get_atom('a')
@@ -151,7 +159,6 @@ class FolLemmaTests(unittest.TestCase):
         l = andpair(x, y)
         self.assertEqual(str(l), 'AndPair{Assume[h_imply(a, c)], Assume[h_imply(b, c)]}')
         self.assertEqual(str(l.getAtom()), 'h_imply(h_imply(h_not(a), b), c)')
-        
-
+    
 if __name__ == '__main__':
     unittest.main()
