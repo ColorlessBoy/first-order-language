@@ -12,7 +12,7 @@ def complete(a: Atom) -> FolLemma:
         folatom2 = replaceassume(folatom1, assumption)
         x1 = deduction(assume(assumption), folatom1)
         x2 = deduction(assume(h_not(assumption)), folatom2)
-        x3 = modus_ponens(folatom1, axiom1(folatom1, folatom2))
+        x3 = assume(h_imply(folatom2, folatom1)) # wrong, folatom1 remove assumption implicitly
         x4 = transitive(x2, x3)
         folatom1 = contradiction(x1, x4)
     
