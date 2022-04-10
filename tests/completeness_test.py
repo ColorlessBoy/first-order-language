@@ -22,4 +22,3 @@ class CompletenessTest(unittest.TestCase):
         self.assertEqual(str(s.getAtom()), 'h_imply(a, h_imply(b, a))')
         self.assertEqual(str(assumptions[0]), 'h_imply(h_imply(h_not(a), h_imply(b, h_not(a))), h_imply(a, h_imply(b, a)))')
 
-
