@@ -109,6 +109,7 @@ def deduction(assumption: FolAtom, y: FolAtom) -> FolLemma:
         """ y is not based on assumption x. """
         s = modus_ponens(y, axiom1(y, assumption))
     else:
+        """ y = modus_ponens(a, b). """
         s0 = deduction(assumption, y.next[0]) # h_imply(x, y.next[0]) without assumption x.
         s1 = deduction(assumption, y.next[1]) # h_imply(x, h_imply(y.next[0], y)) without assumption x.
         s2 = axiom2(assumption, y.next[0], y)
