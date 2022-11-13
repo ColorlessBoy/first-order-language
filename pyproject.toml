@@ -1,0 +1,40 @@
+[tool.poetry]
+name = "first-order-language"
+version = "0.1.0"
+description = ""
+authors = ["penglingwei <penglingwei@zju.edu.cn>"]
+license = "MIT"
+readme = "README.md"
+packages = [
+    { include = "first_order_language", from = "src" },
+]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+
+[[tool.poetry.source]]
+name = "tsinghua"
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+default = true
+secondary = false
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^22.10.0"
+isort = "^5.10.1"
+flake8 = "^5.0.4"
+pre-commit = "^2.20.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.isort]
+# from https://black.readthedocs.io/en/stable/guides/using_black_with_other_tools.html#black-compatible-configurations
+profile = "black"
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true

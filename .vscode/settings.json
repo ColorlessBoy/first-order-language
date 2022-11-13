@@ -1,12 +1,20 @@
 {
-    "python.testing.unittestArgs": [
-        "-v",
-        "-s",
-        "./tests",
-        "-p",
-        "*test*.py"
-    ],
-    "python.testing.pytestEnabled": false,
-    "python.testing.unittestEnabled": true,
-    "python.analysis.extraPaths": ["./src"]
+  "python.testing.unittestArgs": [
+    "-v",
+    "-s",
+    "./tests",
+    "-p",
+    "*test*.py"
+  ],
+  "python.testing.pytestEnabled": false,
+  "python.testing.unittestEnabled": true,
+  "python.analysis.extraPaths": ["./src"],
+  "python.formatting.provider": "black",
+  "formattingToggle.affects": [
+    "editor.formatOnSave"
+  ],
+  "[python]": { "editor.formatOnSaveMode": "file" },
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": true
+  }
 }
