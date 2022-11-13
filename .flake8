@@ -1,0 +1,4 @@
+#<PROJECT_FOLDER>/.flake8
+max-line-length = 88
+max-complexity = 10
+extend-ignore = E501, F401, E402, E203 #for black formmater
