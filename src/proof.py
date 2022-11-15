@@ -1,141 +1,187 @@
 from __future__ import annotations
 
-from prop import ForallProp, ImplyProp, NotProp, Prop, VarProp
+from prop import *
 from variable import Variable
 
 
 class Proof:
-    def __init__(self, p: Prop):
+    def __init__(self, p: Prop) -> None:
+        self.name = "Proof"
         self.prop = p
+        self.assumption = []
 
     def __eq__(self, proof: Proof) -> bool:
         return self.prop == proof.prop
 
     def __str__(self) -> str:
-        return "Proof" + self.prop.__str__()
+        return self.name + self.prop.__str__()
 
 
-def axiom1(p1: Prop, p2: Prop) -> Proof:
-    """axiom1
+class Assumption(Proof):
+    def __init__(self, p: Prop):
+        super().__init__(p)
+        self.name = "Assumption"
+        self.assumption = [self]
 
-    Args:
-        p1 (Prop): any prop
-        p2 (Prop): any prop
-
-    Returns:
-        Proof: p1 => (p2 => p1)
-    """
-    p = ImplyProp(p1, ImplyProp(p2, p1))
-    return Proof(p)
+    def __str__(self) -> str:
+        return self.name + "(" + self.prop.__str__() + ")"
 
 
-def axiom2(p1: Prop, p2: Prop, p3: Prop) -> Proof:
-    """axiom2
+class Axiom1(Proof):
+    def __init__(self, p1: Prop, p2: Prop) -> None:
+        """Axiom1
 
-    Args:
-        p1 (Prop): any prop
-        p2 (Prop): any prop
-        p3 (Prop): any prop
+        Args:
+            p1 (Prop): any prop
+            p2 (Prop): any prop
 
-    Returns:
-        Proof: (p1 => (p2 => p3)) => ((p1 => p2) => (p1 => p3))
-    """
-    p4 = ImplyProp(p1, ImplyProp(p2, p3))
-    p5 = ImplyProp(ImplyProp(p1, p2), ImplyProp(p1, p3))
-    p6 = ImplyProp(p4, p5)
-    return Proof(p6)
-
-
-def axiom3(p1: Prop, p2: Prop) -> Proof:
-    """axiom3
-
-    Args:
-        p1 (Prop): any prop
-        p2 (Prop): any prop
-
-    Returns:
-        Proof: (!p1 => !p2) => ((!p1 => p2) => p1)
-    """
-    p3 = ImplyProp(NotProp(p1), NotProp(p2))
-    p4 = ImplyProp(NotProp(p1), p2)
-    p5 = ImplyProp(p3, ImplyProp(p4, p1))
-    return Proof(p5)
+        Returns:
+            Proof: p1 => (p2 => p1)
+        """
+        self.name = "Axiom1"
+        self.input1 = p1
+        self.input2 = p2
+        self.prop = ImplyProp(p1, ImplyProp(p2, p1))
+        self.assumption = []
 
 
-def axiom4(p: Prop, x: Variable, y: Variable) -> Proof:
-    """axiom4
+class Axiom2(Proof):
+    def __init__(self, p1: Prop, p2: Prop, p3: Prop) -> None:
+        """Axiom2
 
-    Args:
-        p (Prop): any prop
-        x (Variable): any variable
-        y (Variable): y should not be bounded in p
+        Args:
+            p1 (Prop): any prop
+            p2 (Prop): any prop
+            p3 (Prop): any prop
 
-    Raises:
-        ValueError: axiom4(): y should not be bounded in p
-
-    Returns:
-        Proof: \forall x, p => p[x -> y]
-    """
-    if p.isbounded(y):
-        raise ValueError("axiom4(): y should not be bounded in p")
-    p1 = ForallProp(x, p)
-    p2 = p.substitute(x, y)
-    p3 = ImplyProp(p1, p2)
-    return Proof(p3)
-
-
-def axiom5(p1: Prop, p2: Prop, x: Variable) -> Proof:
-    """axiom5
-
-    Args:
-        p1 (Prop): any prop
-        p2 (Prop): any prop
-        x (Variable): x should not be free in p1
-
-    Raises:
-        ValueError: axiom5(): x should not be free in p1
-
-    Returns:
-        Proof: (\forall x, p1 => p2) => (p1 => \forall p2)
-    """
-    if p1.isfree(x):
-        raise ValueError("axiom5(): x should not be free in p1")
-    p3 = ForallProp(x, ImplyProp(p1, p2))
-    p4 = ImplyProp(p1, ForallProp(x, p2))
-    p5 = ImplyProp(p3, p4)
-    return Proof(p5)
+        Returns:
+            Proof: (p1 => (p2 => p3)) => ((p1 => p2) => (p1 => p3))
+        """
+        self.name = "Axiom2"
+        self.input1 = p1
+        self.input2 = p2
+        self.input3 = p3
+        p4 = ImplyProp(p1, ImplyProp(p2, p3))
+        p5 = ImplyProp(ImplyProp(p1, p2), ImplyProp(p1, p3))
+        p6 = ImplyProp(p4, p5)
+        self.prop = p6
+        self.assumption = []
 
 
-def mp(proof1: Proof, proof2: Proof) -> Proof:
-    """Modus ponens
-
-    Args:
-        proof1 (Proof): proof(a)
-        proof2 (Proof): proof(a => b)
-
-    Raises:
-        ValueError: mp(): proof2.prop should be an ImplyProp
-        ValueError: mp(): proof1 != proof2.prop.left_child
-
-    Returns:
-        Proof: proof(b)
-    """
-    if proof2.prop.name != "ImplyProp":
-        raise ValueError("mp(): proof2.prop should be an ImplyProp")
-    p: ImplyProp = proof2.prop  # type: ignore
-    if proof1.prop != p.left_child:
-        raise ValueError("mp(): proof1.prop != proof2.prop.left_child")
-    return Proof(p.right_child)
+class Axiom3(Proof):
+    def __init__(self, p1: Prop, p2: Prop) -> None:
+        self.name = "Axiom3"
+        self.input1 = p1
+        self.input2 = p2
+        p3 = ImplyProp(NotProp(p1), NotProp(p2))
+        p4 = ImplyProp(NotProp(p1), p2)
+        p5 = ImplyProp(p3, ImplyProp(p4, p1))
+        self.prop = p5
+        self.assumption = []
 
 
-def gen(proof: Proof, x: Variable) -> Proof:
-    """Generalization
+class Axiom4(Proof):
+    def __init__(self, p: Prop, x: Variable, y: Variable) -> None:
+        """Axiom4
 
-    Args:
-        proof (Proof): proof(a)
-        x (Variable): any variable
+        Args:
+            p (Prop): any prop
+            x (Variable): any variable
+            y (Variable): y should not be bounded in p
 
-    Returns:
-        Proof: \forall x a
-    """
-    return Proof(ForallProp(x, proof.prop))
+        Raises:
+            ValueError: Axiom4(): y should not be bounded in p
+
+        Returns:
+            Proof: \forall x, p => p[x -> y]
+        """
+        if p.isbounded(y):
+            raise ValueError("Axiom4(): y should not be bounded in p")
+        self.name = "Axiom4"
+        self.input1 = p
+        self.input2 = x
+        self.input3 = y
+        p1 = ForallProp(x, p)
+        p2 = p.substitute(x, y)
+        p3 = ImplyProp(p1, p2)
+        self.prop = p3
+        self.assumption = []
+
+
+class Axiom5(Proof):
+    def __init__(self, p1: Prop, p2: Prop, x: Variable) -> None:
+        """Axiom5
+
+        Args:
+            p1 (Prop): any prop
+            p2 (Prop): any prop
+            x (Variable): x should not be free in p1
+
+        Raises:
+            ValueError: Axiom5(): x should not be free in p1
+
+        Returns:
+            Proof: (\forall x, p1 => p2) => (p1 => \forall p2)
+        """
+        if p1.isfree(x):
+            raise ValueError("Axiom5(): x should not be free in p1")
+        self.name = "Axiom5"
+        self.input1 = p1
+        self.input2 = p2
+        self.input3 = x
+        p3 = ForallProp(x, ImplyProp(p1, p2))
+        p4 = ImplyProp(p1, ForallProp(x, p2))
+        p5 = ImplyProp(p3, p4)
+        self.prop = p5
+        self.assumption = []
+
+
+class ModusPonens(Proof):
+    def __init__(self, proof1: Proof, proof2: Proof) -> None:
+        """Modus Ponens
+
+        Args:
+            proof1 (Proof): proof(a)
+            proof2 (Proof): proof(a => b)
+
+        Raises:
+            ValueError: ModusPonens(): proof2.prop should be an ImplyProp
+            ValueError: ModusPonens(): proof1 != proof2.prop.left_child
+
+        Returns:
+            Proof: proof(b)
+        """
+        if proof2.prop.name != "ImplyProp":
+            raise ValueError("ModusPonens(): proof2.prop should be an ImplyProp")
+        p: ImplyProp = proof2.prop  # type: ignore
+        if proof1.prop != p.left_child:
+            raise ValueError("ModusPonens(): proof1.prop != proof2.prop.left_child")
+        self.name = "ModusPonens"
+        self.input1 = proof1
+        self.input2 = proof2
+        self.prop = p.right_child
+        self.assumption = proof1.assumption + proof2.assumption
+
+    def __str__(self) -> str:
+        return f"{self.name}({self.input1.__str__()}, {self.input2.__str__()})"
+
+
+class Generalization(Proof):
+    def __init__(self, proof: Proof, x: Variable) -> None:
+        """Generalization
+
+        Args:
+            proof (Proof): proof(a)
+            x (Variable): any variable
+
+        Returns:
+            Proof: \forall x a
+        """
+        self.name = "Generalization"
+        self.input1 = proof
+        self.input2 = x
+        self.prop = ForallProp(x, proof.prop)
+        self.assumption = proof.assumption
+
+    def __str__(self) -> str:
+        return f"{self.name}({self.input1.__str__()}, {self.input2.__str__()})"
