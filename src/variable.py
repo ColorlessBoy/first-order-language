@@ -2,14 +2,14 @@ from __future__ import annotations
 
 
 class Variable:
-    def __init__(self, name: str) -> None:
-        self.name = name
+    def __init__(self, content: str) -> None:
+        self.content = content
 
     def __eq__(self, other: Variable) -> bool:
-        return self.name == other.name
+        return self.content == other.content
 
     def __hash__(self) -> int:
-        return self.name.__hash__()
+        return self.content.__hash__()
 
     def __str__(self) -> str:
-        return self.name.__str__()
+        return self.content.__str__()

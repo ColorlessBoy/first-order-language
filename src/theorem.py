@@ -1,20 +1,31 @@
 from __future__ import annotations
 
-from proof import *
-from prop import *
+from proof import (
+    Assumption,
+    Axiom1,
+    Axiom2,
+    Axiom3,
+    Axiom4,
+    Axiom5,
+    Generalization,
+    ModusPonens,
+    Proof,
+)
+from prop import ImplyProp, Prop
 
 
-# BUG: Theorem存在Bug，Theorem.proof可能是Theorem类，所以起名为proof有问题。
 class Theorem:
     def __init__(self, proof: Proof) -> None:
-        self.name = "Theorem"
         self.proof = proof
+
+    def getname(self) -> str:
+        return self.__class__.__name__
 
     def __eq__(self, thm: Theorem) -> bool:
         return self.proof == thm.proof
 
     def __str__(self) -> str:
-        return self.name + "(" + self.proof.__str__() + ")"
+        return self.getname() + "(" + self.proof.__str__() + ")"
 
 
 class Reflexive(Theorem):
@@ -49,9 +60,9 @@ class Transitive(Theorem):
         Returns:
             Proof: a => c
         """
-        if proof1.prop.name != "ImplyProp":
+        if proof1.prop.getname() != "ImplyProp":
             raise ValueError("transitive(): proof1.prop should be an ImplyProp")
-        if proof2.prop.name != "ImplyProp":
+        if proof2.prop.getname() != "ImplyProp":
             raise ValueError("transitive(): proof2.prop should be an ImplyProp")
         p1: ImplyProp = proof1.prop  # type: ignore
         p2: ImplyProp = proof2.prop  # type: ignore
@@ -70,7 +81,6 @@ class Transitive(Theorem):
         proof6 = ModusPonens(proof4, proof5)
         proof7 = ModusPonens(proof1, proof6)
 
-        self.name = "Transitive"
         self.proof = proof7
 
 
@@ -93,15 +103,15 @@ class Deduction(Theorem):
         elif assumption not in proof.assumption:
             """proof is not based on assumption x"""
             output = ModusPonens(proof, Axiom1(proof.prop, assumption.prop))
-        elif proof.name == "Generalization":
+        elif proof.getname() == "Generalization":
             proof1: Generalization = proof  # type: ignore
-            proof3 = Deduction(assumption, proof1.input1).proof
-            output = Generalization(proof3, proof1.input2)
-        elif proof.name == "ModusPonens":
+            proof3 = Deduction(assumption, proof1.proof1).proof
+            output = Generalization(proof3, proof1.var1)
+        elif proof.getname() == "ModusPonens":
             proof2: ModusPonens = proof  # type: ignore
-            proof3 = Deduction(assumption, proof2.input1).proof
-            proof4 = Deduction(assumption, proof2.input2).proof
-            proof5 = Axiom2(assumption.prop, proof2.input1.prop, proof2.prop)
+            proof3 = Deduction(assumption, proof2.proof1).proof
+            proof4 = Deduction(assumption, proof2.proof2).proof
+            proof5 = Axiom2(assumption.prop, proof2.proof1.prop, proof2.prop)
             proof6 = ModusPonens(proof3, ModusPonens(proof4, proof5))
             output = proof6
         else:

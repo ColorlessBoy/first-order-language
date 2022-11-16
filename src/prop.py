@@ -6,8 +6,7 @@ from variable import Variable
 
 
 class Prop:
-    def __init__(self, name: str) -> None:
-        self.name = name
+    def __init__(self) -> None:
         self.freevars = set()
         self.boundedvars = set()
 
@@ -20,13 +19,16 @@ class Prop:
     def substitute(self, x: Variable, y: Variable) -> Prop:
         return copy.deepcopy(self)
 
+    def getname(self) -> str:
+        return self.__class__.__name__
+
     def __eq__(self, p: Prop) -> bool:
-        return self.name == p.name
+        return self.getname() == p.getname()
 
 
 class VarProp(Prop):
     def __init__(self, x: Variable) -> None:
-        super().__init__("VarProp")
+        super().__init__()
         self.variable = x
         self.freevars.add(x)
 
@@ -36,7 +38,7 @@ class VarProp(Prop):
         return self
 
     def __eq__(self, p: VarProp) -> bool:
-        return self.name == p.name and self.variable == p.variable
+        return self.getname() == p.getname() and self.variable == p.variable
 
     def __str__(self) -> str:
         return self.variable.__str__()
@@ -44,7 +46,7 @@ class VarProp(Prop):
 
 class NotProp(Prop):
     def __init__(self, p: Prop) -> None:
-        super().__init__("NotProp")
+        super().__init__()
         self.child = p
         self.freevars = p.freevars.copy()
         self.boundedvars = p.boundedvars.copy()
@@ -55,15 +57,15 @@ class NotProp(Prop):
         return self
 
     def __eq__(self, p: NotProp) -> bool:
-        return self.name == p.name and self.child == p.child
+        return self.getname() == p.getname() and self.child == p.child
 
     def __str__(self) -> str:
-        return "!(" + self.child.__str__() + ")"
+        return "!" + self.child.__str__()
 
 
 class ImplyProp(Prop):
     def __init__(self, p1: Prop, p2: Prop) -> None:
-        super().__init__("ImplyProp")
+        super().__init__()
         self.left_child = p1
         self.right_child = p2
         self.freevars = set.union(p1.freevars, p2.freevars)
@@ -78,7 +80,7 @@ class ImplyProp(Prop):
 
     def __eq__(self, p: ImplyProp) -> bool:
         return (
-            self.name == p.name
+            self.getname() == p.getname()
             and self.left_child == p.left_child
             and self.right_child == p.right_child
         )
@@ -89,7 +91,7 @@ class ImplyProp(Prop):
 
 class ForallProp(Prop):
     def __init__(self, x: Variable, p: Prop) -> None:
-        super().__init__("ForallProp")
+        super().__init__()
         self.variable = x
         self.child = p
         self.freevars = p.freevars.copy()
@@ -106,7 +108,7 @@ class ForallProp(Prop):
 
     def __eq__(self, p: ForallProp) -> bool:
         return (
-            self.name == p.name
+            self.getname() == p.getname()
             and self.variable == p.variable
             and self.child == p.child
         )

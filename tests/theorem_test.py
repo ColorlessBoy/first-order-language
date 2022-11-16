@@ -5,8 +5,8 @@ sys.path.append("./src")
 
 import unittest
 
-from proof import *
-from prop import *
+from proof import Assumption, ModusPonens, Proof
+from prop import ImplyProp, VarProp
 from theorem import Deduction, Reflexive, Transitive
 from variable import Variable
 
