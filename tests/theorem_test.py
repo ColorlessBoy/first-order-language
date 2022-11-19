@@ -8,6 +8,7 @@ import unittest
 from proof import Assumption, ModusPonens, Proof
 from prop import ImplyProp, NotProp, VarProp
 from theorem import (
+    Contradiction,
     Deduction,
     Exchange,
     FromDoubleNot,
@@ -91,4 +92,13 @@ class TheoremTest(unittest.TestCase):
             ImplyProp(ImplyProp(vpa, vpb), ImplyProp(NotProp(vpb), NotProp(vpa)))
         )
         theorem1 = ToInverseNotNot(vpa, vpb)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_contradiction(self):
+        vpa = VarProp(Variable("a"))
+        vpb = VarProp(Variable("b"))
+        assume1 = Assumption(
+            ImplyProp(ImplyProp(vpa, vpb), ImplyProp(ImplyProp(NotProp(vpa), vpb), vpb))
+        )
+        theorem1 = Contradiction(vpa, vpb)
         self.assertEqual(assume1, theorem1.proof)

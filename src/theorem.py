@@ -220,3 +220,24 @@ class ToInverseNotNot(Theorem):
         proof1 = ModusPonens(theorem4.proof, theorem5.proof)  # !p2 => !p1
         theorem6 = Deduction(assume1, proof1)  # (p1 => p2) => (!p2 => !p1)
         super().__init__(theorem6.proof)
+
+
+class Contradiction(Theorem):
+    def __init__(self, p1: Prop, p2: Prop) -> None:
+        """(a => b) => (!a => b) => b
+
+        Args:
+            p1 (Prop): _description_
+            p2 (Prop): _description_
+        """
+        theorem1 = ToInverseNotNot(p1, p2)  # (p1 => p2) => (!p2 => !p1)
+        theorem2 = ToInverseNotNot(NotProp(p1), p2)  # (!p1 => p2) => (!p2 => !!p1)
+        proof1 = Axiom3(p2, NotProp(p1))  # (!p2 => !!p1) => (!p2 => !p1) => p2
+        theorem3 = Transitive(
+            theorem2.proof, proof1
+        )  # (!p1 => p2) => (!p2 => !p1) => p2
+        theorem4 = Exchange(theorem3.proof)  # (!p2 => !p1) => (!p1 => p2) => p2
+        theorem5 = Transitive(
+            theorem1.proof, theorem4.proof
+        )  # (p1 => p2) => (!p1 => p2) => p2
+        super().__init__(theorem5.proof)
