@@ -14,18 +14,10 @@ from proof import (
 from prop import ImplyProp, Prop
 
 
-class Theorem:
+class Theorem(Proof):
     def __init__(self, proof: Proof) -> None:
+        super().__init__(proof.prop)
         self.proof = proof
-
-    def getname(self) -> str:
-        return self.__class__.__name__
-
-    def __eq__(self, thm: Theorem) -> bool:
-        return self.proof == thm.proof
-
-    def __str__(self) -> str:
-        return self.getname() + "(" + self.proof.__str__() + ")"
 
 
 class Reflexive(Theorem):
@@ -38,15 +30,18 @@ class Reflexive(Theorem):
         Returns:
             Proof: p => p
         """
-        self.name = "Reflexive"
-        self.input = p
         p2p = ImplyProp(p, p)
         proof1 = Axiom1(p, p)
         proof2 = Axiom1(p, p2p)
         proof3 = Axiom2(p, p2p, p)
         proof4 = ModusPonens(proof2, proof3)
         proof5 = ModusPonens(proof1, proof4)
-        self.proof = proof5
+
+        self.input = {"prop1": p}
+        super().__init__(proof5)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}[{self.input['prop1']}]"
 
 
 class Transitive(Theorem):
@@ -81,7 +76,14 @@ class Transitive(Theorem):
         proof6 = ModusPonens(proof4, proof5)
         proof7 = ModusPonens(proof1, proof6)
 
-        self.proof = proof7
+        self.input = {
+            "proof1": proof1,
+            "proof2": proof2,
+        }
+        super().__init__(proof7)
+
+    def __str__(self) -> str:
+        return f"{self.getname()} ({self.input['proof1'].__str__()}, {self.input['proof2'].__str__()})"
 
 
 class Deduction(Theorem):
@@ -105,19 +107,20 @@ class Deduction(Theorem):
             output = ModusPonens(proof, Axiom1(proof.prop, assumption.prop))
         elif proof.getname() == "Generalization":
             proof1: Generalization = proof  # type: ignore
-            proof3 = Deduction(assumption, proof1.proof1).proof
-            output = Generalization(proof3, proof1.var1)
+            proof3 = Deduction(assumption, proof1.input["proof1"]).proof
+            output = Generalization(proof3, proof1.input["var1"])
         elif proof.getname() == "ModusPonens":
             proof2: ModusPonens = proof  # type: ignore
-            proof3 = Deduction(assumption, proof2.proof1).proof
-            proof4 = Deduction(assumption, proof2.proof2).proof
-            proof5 = Axiom2(assumption.prop, proof2.proof1.prop, proof2.prop)
+            proof3 = Deduction(assumption, proof2.input["proof1"]).proof
+            proof4 = Deduction(assumption, proof2.input["proof2"]).proof
+            proof5 = Axiom2(assumption.prop, proof2.input["proof1"].prop, proof2.prop)
             proof6 = ModusPonens(proof3, ModusPonens(proof4, proof5))
             output = proof6
         else:
             raise ValueError("Deduction(): Unknown kinds of proof.")
 
-        self.name = "Deduction"
-        self.input1 = assumption
-        self.input2 = proof
-        self.proof = output
+        self.input = {"proof1": assumption, "proof2": proof}
+        super().__init__(output)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['proof1'].__str__()}, {self.input['proof2'].__str__()})"

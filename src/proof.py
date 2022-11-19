@@ -9,11 +9,17 @@ class Proof:
         self.prop = p
         self.assumption = []
 
-    def __eq__(self, proof: Proof) -> bool:
-        return self.prop == proof.prop
-
     def getname(self) -> str:
         return self.__class__.__name__
+
+    def eval(self) -> Proof:
+        return Proof(self.prop)
+
+    def alphaEq(self, proof: Proof) -> bool:
+        return self.prop.alphaEq(proof.prop, {}, {})
+
+    def __eq__(self, __o: Proof) -> bool:
+        return self.prop == __o.prop
 
     def __str__(self) -> str:
         return self.getname() + "[" + self.prop.__str__() + "]"
@@ -36,13 +42,12 @@ class Axiom1(Proof):
         Returns:
             Proof: p1 => (p2 => p1)
         """
-        self.prop1 = p1
-        self.prop2 = p2
+        self.input = {"prop1": p1, "prop2": p2}
         self.prop = ImplyProp(p1, ImplyProp(p2, p1))
         self.assumption = []
 
     def __str__(self) -> str:
-        return f"{self.getname()}({self.prop1.__str__()}, {self.prop2.__str__()})"
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()})"
 
 
 class Axiom2(Proof):
@@ -57,9 +62,7 @@ class Axiom2(Proof):
         Returns:
             Proof: (p1 => (p2 => p3)) => ((p1 => p2) => (p1 => p3))
         """
-        self.prop1 = p1
-        self.prop2 = p2
-        self.prop3 = p3
+        self.input = {"prop1": p1, "prop2": p2, "prop3": p3}
         p4 = ImplyProp(p1, ImplyProp(p2, p3))
         p5 = ImplyProp(ImplyProp(p1, p2), ImplyProp(p1, p3))
         p6 = ImplyProp(p4, p5)
@@ -67,7 +70,7 @@ class Axiom2(Proof):
         self.assumption = []
 
     def __str__(self) -> str:
-        return f"{self.getname()}({self.prop1.__str__()}, {self.prop2.__str__()}, {self.prop3.__str__()})"
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()}, {self.input.__str__()})"
 
 
 class Axiom3(Proof):
@@ -81,8 +84,7 @@ class Axiom3(Proof):
         Returns:
             Proof: (!p1 => !p2) => ((!p1 => p2) => p1)
         """
-        self.prop1 = p1
-        self.prop2 = p2
+        self.input = {"prop1": p1, "prop2": p2}
         p3 = ImplyProp(NotProp(p1), NotProp(p2))
         p4 = ImplyProp(NotProp(p1), p2)
         p5 = ImplyProp(p3, ImplyProp(p4, p1))
@@ -90,7 +92,7 @@ class Axiom3(Proof):
         self.assumption = []
 
     def __str__(self) -> str:
-        return f"{self.getname()}({self.prop1.__str__()}, {self.prop2.__str__()})"
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()})"
 
 
 class Axiom4(Proof):
@@ -110,10 +112,7 @@ class Axiom4(Proof):
         """
         if p.isbounded(y):
             raise ValueError("Axiom4(): y should not be bounded in p")
-        self.name = "Axiom4"
-        self.prop1 = p
-        self.var1 = x
-        self.var2 = y
+        self.input = {"prop1": p, "var1": x, "var2": y}
         p1 = ForallProp(x, p)
         p2 = p.substitute(x, y)
         p3 = ImplyProp(p1, p2)
@@ -121,7 +120,7 @@ class Axiom4(Proof):
         self.assumption = []
 
     def __str__(self) -> str:
-        return f"{self.getname()}({self.prop1.__str__()}, {self.var1.__str__()}, {self.var2.__str__()})"
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['var1'].__str__()}, {self.input['var2'].__str__()})"
 
 
 class Axiom5(Proof):
@@ -141,9 +140,7 @@ class Axiom5(Proof):
         """
         if p1.isfree(x):
             raise ValueError("Axiom5(): x should not be free in p1")
-        self.prop1 = p1
-        self.prop2 = p2
-        self.var1 = x
+        self.input = {"prop1": p1, "prop2": p2, "var1": x}
         p3 = ForallProp(x, ImplyProp(p1, p2))
         p4 = ImplyProp(p1, ForallProp(x, p2))
         p5 = ImplyProp(p3, p4)
@@ -151,7 +148,7 @@ class Axiom5(Proof):
         self.assumption = []
 
     def __str__(self) -> str:
-        return f"{self.getname()}({self.prop1.__str__()}, {self.prop2.__str__()}, {self.var1.__str__()})"
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()}, {self.input['var1'].__str__()})"
 
 
 class ModusPonens(Proof):
@@ -174,13 +171,12 @@ class ModusPonens(Proof):
         p: ImplyProp = proof2.prop  # type: ignore
         if proof1.prop != p.left_child:
             raise ValueError("ModusPonens(): proof1.prop != proof2.prop.left_child")
-        self.proof1 = proof1
-        self.proof2 = proof2
+        self.input = {"proof1": proof1, "proof2": proof2}
         self.prop = p.right_child
         self.assumption = proof1.assumption + proof2.assumption
 
     def __str__(self) -> str:
-        return f"{self.getname()}({self.proof1.__str__()}, {self.proof2.__str__()})"
+        return f"{self.getname()}({self.input['proof1'].__str__()}, {self.input['proof2'].__str__()})"
 
 
 class Generalization(Proof):
@@ -194,10 +190,9 @@ class Generalization(Proof):
         Returns:
             Proof: \forall x a
         """
-        self.var1 = x
-        self.proof1 = proof
+        self.input = {"proof1": proof, "var1": x}
         self.prop = ForallProp(x, proof.prop)
         self.assumption = proof.assumption
 
     def __str__(self) -> str:
-        return f"{self.getname()}({self.var1.__str__()}, {self.proof1.__str__()})"
+        return f"{self.getname()}({self.input['proof1'].__str__()}, {self.input['var'].__str__()})"

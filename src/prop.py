@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import copy
-
 from variable import Variable
 
 
@@ -17,13 +15,24 @@ class Prop:
         return x in self.boundedvars
 
     def substitute(self, x: Variable, y: Variable) -> Prop:
-        return copy.deepcopy(self)
+        return self
 
     def getname(self) -> str:
         return self.__class__.__name__
 
-    def __eq__(self, p: Prop) -> bool:
-        return self.getname() == p.getname()
+    def alphaEq(
+        self,
+        other: Prop,
+        self_var_to_int: dict[Variable, int],
+        other_var_to_int: dict[Variable, int],
+    ) -> bool:
+        return self.getname() == other.getname()
+
+    def __eq__(self, __o: Prop) -> bool:
+        return self.getname() == __o.getname()
+
+    def __str__(self) -> str:
+        return f"{self.getname()}()"
 
 
 class VarProp(Prop):
@@ -37,8 +46,19 @@ class VarProp(Prop):
             return VarProp(y)
         return self
 
-    def __eq__(self, p: VarProp) -> bool:
-        return self.getname() == p.getname() and self.variable == p.variable
+    def alphaEq(
+        self,
+        other: VarProp,
+        self_var_to_int: dict[Variable, int],
+        other_var_to_int: dict[Variable, int],
+    ) -> bool:
+        return self.getname() == other.getname() and self.variable.alphaEq(
+            other.variable, self_var_to_int, other_var_to_int
+        )
+
+    def __eq__(self, __o: Prop) -> bool:
+        __o2: VarProp = __o  # type: ignore
+        return super().__eq__(__o) and self.variable == __o2.variable
 
     def __str__(self) -> str:
         return self.variable.__str__()
@@ -56,8 +76,19 @@ class NotProp(Prop):
             return NotProp(self.child.substitute(x, y))
         return self
 
-    def __eq__(self, p: NotProp) -> bool:
-        return self.getname() == p.getname() and self.child == p.child
+    def alphaEq(
+        self,
+        other: NotProp,
+        self_var_to_int: dict[Variable, int],
+        other_var_to_int: dict[Variable, int],
+    ) -> bool:
+        return self.getname() == other.getname() and self.child.alphaEq(
+            other.child, self_var_to_int, other_var_to_int
+        )
+
+    def __eq__(self, __o: Prop) -> bool:
+        __o2: NotProp = __o  # type: ignore
+        return super().__eq__(__o) and self.child == __o2.child
 
     def __str__(self) -> str:
         return "!" + self.child.__str__()
@@ -78,11 +109,28 @@ class ImplyProp(Prop):
             )
         return self
 
-    def __eq__(self, p: ImplyProp) -> bool:
+    def alphaEq(
+        self,
+        other: ImplyProp,
+        self_var_to_int: dict[Variable, int],
+        other_var_to_int: dict[Variable, int],
+    ) -> bool:
         return (
-            self.getname() == p.getname()
-            and self.left_child == p.left_child
-            and self.right_child == p.right_child
+            self.getname() == other.getname()
+            and self.left_child.alphaEq(
+                other.left_child, self_var_to_int, other_var_to_int
+            )
+            and self.right_child.alphaEq(
+                other.right_child, self_var_to_int, other_var_to_int
+            )
+        )
+
+    def __eq__(self, __o: Prop) -> bool:
+        __o2: ImplyProp = __o  # type: ignore
+        return (
+            super().__eq__(__o)
+            and self.left_child == __o2.left_child
+            and self.right_child == __o2.right_child
         )
 
     def __str__(self) -> str:
@@ -106,11 +154,24 @@ class ForallProp(Prop):
             return ForallProp(self.variable, self.child.substitute(x, y))
         return self
 
-    def __eq__(self, p: ForallProp) -> bool:
+    def alphaEq(
+        self,
+        other: ForallProp,
+        self_var_to_int: dict[Variable, int],
+        other_var_to_int: dict[Variable, int],
+    ) -> bool:
         return (
-            self.getname() == p.getname()
-            and self.variable == p.variable
-            and self.child == p.child
+            self.getname() == other.getname()
+            and self.variable.alphaEq(other.variable, self_var_to_int, other_var_to_int)
+            and self.child.alphaEq(other.child, self_var_to_int, other_var_to_int)
+        )
+
+    def __eq__(self, __o: Prop) -> bool:
+        __o2: ForallProp = __o  # type: ignore
+        return (
+            super().__eq__(__o)
+            and self.variable == __o2.variable
+            and self.child == __o2.child
         )
 
     def __str__(self) -> str:
