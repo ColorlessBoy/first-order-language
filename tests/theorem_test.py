@@ -6,8 +6,17 @@ sys.path.append("./src")
 import unittest
 
 from proof import Assumption, ModusPonens, Proof
-from prop import ImplyProp, VarProp
-from theorem import Deduction, Reflexive, Transitive
+from prop import ImplyProp, NotProp, VarProp
+from theorem import (
+    Deduction,
+    Exchange,
+    FromDoubleNot,
+    FromInverseNotNot,
+    Reflexive,
+    ToDoubleNot,
+    ToInverseNotNot,
+    Transitive,
+)
 from variable import Variable
 
 
@@ -44,3 +53,42 @@ class TheoremTest(unittest.TestCase):
         target = Proof(ImplyProp(assume1.prop, proof1.prop))
 
         self.assertEqual(proof2, target)
+
+    def test_exchange(self):
+        vpa = VarProp(Variable("a"))
+        vpb = VarProp(Variable("b"))
+        vpc = VarProp(Variable("c"))
+        assume1 = Assumption(ImplyProp(vpa, ImplyProp(vpb, vpc)))
+        assume2 = Assumption(ImplyProp(vpb, ImplyProp(vpa, vpc)))
+        proof3 = Exchange(assume1).proof
+        self.assertEqual(assume2, proof3)
+
+    def test_fromdoublenot(self):
+        vpa = VarProp(Variable("a"))
+        assume1 = Assumption(ImplyProp(NotProp(NotProp(vpa)), vpa))
+        theorem1 = FromDoubleNot(vpa)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_todoublenot(self):
+        vpa = VarProp(Variable("a"))
+        assume1 = Assumption(ImplyProp(vpa, NotProp(NotProp(vpa))))
+        theorem1 = ToDoubleNot(vpa)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_frominversenotnot(self):
+        vpa = VarProp(Variable("a"))
+        vpb = VarProp(Variable("b"))
+        assume1 = Assumption(
+            ImplyProp(ImplyProp(NotProp(vpa), NotProp(vpb)), ImplyProp(vpb, vpa))
+        )
+        theorem1 = FromInverseNotNot(vpa, vpb)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_toinversenotnot(self):
+        vpa = VarProp(Variable("a"))
+        vpb = VarProp(Variable("b"))
+        assume1 = Assumption(
+            ImplyProp(ImplyProp(vpa, vpb), ImplyProp(NotProp(vpb), NotProp(vpa)))
+        )
+        theorem1 = ToInverseNotNot(vpa, vpb)
+        self.assertEqual(assume1, theorem1.proof)

@@ -4,6 +4,8 @@ from prop import ForallProp, ImplyProp, NotProp, Prop
 from variable import Variable
 
 
+# BUG: assumption不一样的Proof是否应该相等呢？
+# BUG: 现在的代码没有突出Deduction的意义，即消除assumption。
 class Proof:
     def __init__(self, p: Prop) -> None:
         self.prop = p

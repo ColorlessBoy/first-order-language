@@ -11,13 +11,15 @@ from proof import (
     ModusPonens,
     Proof,
 )
-from prop import ImplyProp, Prop
+from prop import ForallProp, ImplyProp, NotProp, Prop
 
 
-class Theorem(Proof):
+class Theorem:
     def __init__(self, proof: Proof) -> None:
-        super().__init__(proof.prop)
         self.proof = proof
+
+    def getname(self) -> str:
+        return self.__class__.__name__
 
 
 class Reflexive(Theorem):
@@ -124,3 +126,97 @@ class Deduction(Theorem):
 
     def __str__(self) -> str:
         return f"{self.getname()}({self.input['proof1'].__str__()}, {self.input['proof2'].__str__()})"
+
+
+class Exchange(Theorem):
+    def __init__(self, proof: Proof) -> None:
+        """Exchange
+
+        Args:
+            p (Prop): a => (b => c)
+
+        Returns:
+            Proof: b => (a => c)
+        """
+        if proof.prop.getname() != "ImplyProp":
+            raise ValueError("Require p: a => (b => c)")
+        p2: ImplyProp = proof.prop  # type: ignore
+        if p2.right_child.getname() != "ImplyProp":
+            raise ValueError("Require p: a => (b => c)")
+        a: Prop = p2.left_child
+        p3: ImplyProp = p2.right_child  # type: ignore
+        b: Prop = p3.left_child
+        c: Prop = p3.right_child
+
+        s1 = Axiom1(b, a)  # b => (a => b)
+        s2 = Axiom2(a, b, c)  # ((a => b)=>c) => ((a => b) => (a => c))
+        s3 = ModusPonens(proof, s2)  # (a => b) => (a => c)
+        s4 = Transitive(s1, s3)  # b => (a => c)
+        super().__init__(s4.proof)
+
+
+class FromDoubleNot(Theorem):
+    def __init__(self, p: Prop) -> None:
+        """!!p => p
+
+        Args:
+            p (Prop): _description_
+        """
+        proof1 = Axiom3(p, NotProp(p))  # (!p => !!p) => ((!p => !p) => p)
+        theorem1 = Exchange(proof1)  # (!p => !p) => ((!p => !!p) => p)
+        theorem2 = Reflexive(NotProp(p))  # !p => !p
+        proof2 = ModusPonens(theorem2.proof, theorem1.proof)  # (!p => !!p) => p
+        proof3 = Axiom1(NotProp(NotProp(p)), NotProp(p))  # !!p => (!p => !!p)
+        theorem4 = Transitive(proof3, proof2)  # !!p => p
+        super().__init__(theorem4.proof)
+
+
+class ToDoubleNot(Theorem):
+    def __init__(self, p: Prop) -> None:
+        """p => !!p
+
+        Args:
+            p (Prop): _description_
+        """
+        proof1 = Axiom3(NotProp(NotProp(p)), p)  # (!!!p => !p) => ((!!!p => p) => !!p)
+        theorem1 = FromDoubleNot(NotProp(p))  # !!!p => !p
+        proof2 = ModusPonens(theorem1.proof, proof1)  # (!!!p => p) => !!p
+        proof3 = Axiom1(p, NotProp(NotProp(NotProp(p))))  # p => (!!!p => p)
+        theorem2 = Transitive(proof3, proof2)  # p => !!p
+        super().__init__(theorem2.proof)
+
+
+class FromInverseNotNot(Theorem):
+    def __init__(self, p1: Prop, p2: Prop) -> None:
+        """(!p1 => !p2) => (p2 => p1)
+
+        Args:
+            proof (Proof): _description_
+        """
+        proof1 = Axiom1(p2, NotProp(p1))  # p2 => !p1 => p2
+        proof2 = Axiom3(p1, p2)  # (!p1 => !p2) => ((!p1 => p2) => p1)
+        theorem1 = Exchange(proof2)  # (!p1 => p2) => ((!p1 => !p2) => p1)
+        theorem2 = Transitive(proof1, theorem1.proof)  # p2 => ((!p1 => !p2) => p1)
+        theorem3 = Exchange(theorem2.proof)  # (!p1 => !p2) => p2 => p1
+        super().__init__(theorem3.proof)
+
+
+class ToInverseNotNot(Theorem):
+    def __init__(self, p1: Prop, p2: Prop) -> None:
+        """(p1 => p2) => (!p2 => !p1)
+
+        Args:
+            p1 (Prop): _description_
+            p2 (Prop): _description_
+        """
+        assume1 = Assumption(ImplyProp(p1, p2))  # p1 => p2
+        theorem1 = FromDoubleNot(p1)  # !!p1 => p1
+        theorem2 = Transitive(theorem1.proof, assume1)  # !!p1 => p2
+        theorem3 = ToDoubleNot(p2)  # p2 => !!p2
+        theorem4 = Transitive(theorem2.proof, theorem3.proof)  # !!p1 => !!p2
+        theorem5 = FromInverseNotNot(
+            NotProp(p1), NotProp(p2)
+        )  # (!!p1 => !!p2) => (!p2 => !p1)
+        proof1 = ModusPonens(theorem4.proof, theorem5.proof)  # !p2 => !p1
+        theorem6 = Deduction(assume1, proof1)  # (p1 => p2) => (!p2 => !p1)
+        super().__init__(theorem6.proof)
