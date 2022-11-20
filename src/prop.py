@@ -3,6 +3,11 @@ from __future__ import annotations
 from variable import Variable
 
 
+# BUG: 在 \forall 里，现在的alphaEq()有些问题，需要适用范围更广的alphaEq()。或者结合Axiom4也可以间接扩展alphaEq()
+# TODO:
+# 1. AndProp AndProof AndInverseProof
+# 2. OrProp OrProof OrInverseProof
+# 3. IIFProp IIFProof IIFInverseProof
 class Prop:
     def __init__(self) -> None:
         self.freevars = set()
@@ -27,6 +32,9 @@ class Prop:
         other_var_to_int: dict[Variable, int],
     ) -> bool:
         return self.getname() == other.getname()
+
+    def eval(self) -> Prop:
+        return self
 
     def __eq__(self, __o: Prop) -> bool:
         return self.getname() == __o.getname()
@@ -175,4 +183,4 @@ class ForallProp(Prop):
         )
 
     def __str__(self) -> str:
-        return "(\forall" + self.variable.__str__() + "," + self.child.__str__() + ")"
+        return "(forall " + self.variable.__str__() + "," + self.child.__str__() + ")"

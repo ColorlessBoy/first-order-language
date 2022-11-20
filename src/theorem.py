@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from extprop import ExistProp
 from proof import (
+    AlphaEqAxiom,
     Assumption,
     Axiom1,
     Axiom2,
@@ -12,6 +14,7 @@ from proof import (
     Proof,
 )
 from prop import ForallProp, ImplyProp, NotProp, Prop
+from variable import Variable
 
 
 class Theorem:
@@ -104,19 +107,34 @@ class Deduction(Theorem):
         output = proof
         if assumption == proof:
             output = Reflexive(proof.prop).proof
-        elif assumption not in proof.assumption:
+        elif proof.getname() in [
+            "Axiom1",
+            "Axiom2",
+            "Axiom3",
+            "Axiom4",
+            "Axiom5",
+            "Assumption",
+            "AlphaEqAxiom",
+        ]:
             """proof is not based on assumption x"""
             output = ModusPonens(proof, Axiom1(proof.prop, assumption.prop))
-        elif proof.getname() == "Generalization":
-            proof1: Generalization = proof  # type: ignore
-            proof3 = Deduction(assumption, proof1.input["proof1"]).proof
-            output = Generalization(proof3, proof1.input["var1"])
         elif proof.getname() == "ModusPonens":
             proof2: ModusPonens = proof  # type: ignore
             proof3 = Deduction(assumption, proof2.input["proof1"]).proof
             proof4 = Deduction(assumption, proof2.input["proof2"]).proof
             proof5 = Axiom2(assumption.prop, proof2.input["proof1"].prop, proof2.prop)
             proof6 = ModusPonens(proof3, ModusPonens(proof4, proof5))
+            output = proof6
+        elif proof.getname() == "Generalization":
+            proof1: Generalization = proof  # type: ignore
+            proof3 = Deduction(assumption, proof1.input["proof1"]).proof
+            proof4 = Generalization(proof3, proof1.input["var1"])
+            prop3: ImplyProp = proof3.prop  # type: ignore
+            prop4 = prop3.left_child
+            prop5 = prop3.right_child
+            var = proof1.input["var1"]
+            proof5 = Axiom5(prop4, prop5, var)
+            proof6 = ModusPonens(proof4, proof5)
             output = proof6
         else:
             raise ValueError("Deduction(): Unknown kinds of proof.")
@@ -241,3 +259,23 @@ class Contradiction(Theorem):
             theorem1.proof, theorem4.proof
         )  # (p1 => p2) => (!p1 => p2) => p2
         super().__init__(theorem5.proof)
+
+
+class ExistentialRule(Theorem):
+    def __init__(self, prop: Prop, x: Variable, y: Variable) -> None:
+        proof1 = Axiom4(NotProp(prop), x, y)  # (forall x, !prop) => !prop[x => y]
+        prop1: ImplyProp = proof1.prop  # type: ignore
+        proof2 = ToInverseNotNot(prop1.left_child, prop1.right_child).proof
+        proof3 = ModusPonens(proof1, proof2)  # !!prop[x => y] => !(forall x, !prop)
+        prop5: NotProp = prop1.right_child  # type: ignore
+        proof4 = ToDoubleNot(prop5.child).proof  # prop[x => y] => !!prop[x => y]
+        proof5 = Transitive(proof4, proof3).proof  # prop[x => y] => !(forall x, !prop)
+
+        prop2: ImplyProp = proof5.prop  # type:ignore
+        prop3 = prop2.right_child
+        prop4 = ExistProp(x, prop)
+        proof6 = AlphaEqAxiom(prop3, prop4)
+
+        proof7 = Transitive(proof5, proof6).proof
+
+        super().__init__(proof7)

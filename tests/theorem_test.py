@@ -5,12 +5,14 @@ sys.path.append("./src")
 
 import unittest
 
-from proof import Assumption, ModusPonens, Proof
+from extprop import ExistProp
+from proof import Assumption, Generalization, ModusPonens, Proof
 from prop import ImplyProp, NotProp, VarProp
 from theorem import (
     Contradiction,
     Deduction,
     Exchange,
+    ExistentialRule,
     FromDoubleNot,
     FromInverseNotNot,
     Reflexive,
@@ -54,6 +56,21 @@ class TheoremTest(unittest.TestCase):
         target = Proof(ImplyProp(assume1.prop, proof1.prop))
 
         self.assertEqual(proof2, target)
+
+    def test_deduction2(self):
+        """Deduction Theorem: {...T, Assume[a]} |=> b ===> {...T} |=> (a=>b)."""
+        vpa = VarProp(Variable("a"))
+        b = Variable("b")
+        vpb = VarProp(b)
+        assume1 = Assumption(vpa)
+        assume2 = Assumption(ImplyProp(vpa, vpb))
+        proof1 = ModusPonens(assume1, assume2)
+        proof2 = Generalization(proof1, b)
+        proof3 = Deduction(assume1, proof2).proof
+
+        target = Proof(ImplyProp(assume1.prop, proof2.prop))
+
+        self.assertEqual(proof3, target)
 
     def test_exchange(self):
         vpa = VarProp(Variable("a"))
@@ -101,4 +118,14 @@ class TheoremTest(unittest.TestCase):
             ImplyProp(ImplyProp(vpa, vpb), ImplyProp(ImplyProp(NotProp(vpa), vpb), vpb))
         )
         theorem1 = Contradiction(vpa, vpb)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_existentialRule(self):
+        a = Variable("a")
+        b = Variable("b")
+        vpa = VarProp(a)
+        vpb = VarProp(b)
+        prop = ImplyProp(vpa, vpb)
+        assume1 = Assumption(ImplyProp(ImplyProp(vpb, vpb), ExistProp(a, prop)))
+        theorem1 = ExistentialRule(prop, a, b)
         self.assertEqual(assume1, theorem1.proof)
