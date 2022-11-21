@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from extprop import ExistProp
+from extprop import AndProp, ExistProp
 from proof import (
     AlphaEqAxiom,
     Assumption,
@@ -170,10 +170,15 @@ class Exchange(Theorem):
         s2 = Axiom2(a, b, c)  # ((a => b)=>c) => ((a => b) => (a => c))
         s3 = ModusPonens(proof, s2)  # (a => b) => (a => c)
         s4 = Transitive(s1, s3)  # b => (a => c)
+
+        self.input = {"proof1": proof}
         super().__init__(s4.proof)
 
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['proof1'].__str__()})"
 
-class FromDoubleNot(Theorem):
+
+class NegationElimination(Theorem):
     def __init__(self, p: Prop) -> None:
         """!!p => p
 
@@ -186,10 +191,15 @@ class FromDoubleNot(Theorem):
         proof2 = ModusPonens(theorem2.proof, theorem1.proof)  # (!p => !!p) => p
         proof3 = Axiom1(NotProp(NotProp(p)), NotProp(p))  # !!p => (!p => !!p)
         theorem4 = Transitive(proof3, proof2)  # !!p => p
+
+        self.input = {"prop1": p}
         super().__init__(theorem4.proof)
 
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()})"
 
-class ToDoubleNot(Theorem):
+
+class NegationIntroduction(Theorem):
     def __init__(self, p: Prop) -> None:
         """p => !!p
 
@@ -197,14 +207,19 @@ class ToDoubleNot(Theorem):
             p (Prop): _description_
         """
         proof1 = Axiom3(NotProp(NotProp(p)), p)  # (!!!p => !p) => ((!!!p => p) => !!p)
-        theorem1 = FromDoubleNot(NotProp(p))  # !!!p => !p
+        theorem1 = NegationElimination(NotProp(p))  # !!!p => !p
         proof2 = ModusPonens(theorem1.proof, proof1)  # (!!!p => p) => !!p
         proof3 = Axiom1(p, NotProp(NotProp(NotProp(p))))  # p => (!!!p => p)
         theorem2 = Transitive(proof3, proof2)  # p => !!p
+
+        self.input = {"prop1": p}
         super().__init__(theorem2.proof)
 
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()})"
 
-class FromInverseNotNot(Theorem):
+
+class ContrapositiveElimination(Theorem):
     def __init__(self, p1: Prop, p2: Prop) -> None:
         """(!p1 => !p2) => (p2 => p1)
 
@@ -216,10 +231,15 @@ class FromInverseNotNot(Theorem):
         theorem1 = Exchange(proof2)  # (!p1 => p2) => ((!p1 => !p2) => p1)
         theorem2 = Transitive(proof1, theorem1.proof)  # p2 => ((!p1 => !p2) => p1)
         theorem3 = Exchange(theorem2.proof)  # (!p1 => !p2) => p2 => p1
+
+        self.input = {"prop1": p1, "prop2": p2}
         super().__init__(theorem3.proof)
 
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()})"
 
-class ToInverseNotNot(Theorem):
+
+class ContrapositiveIntroduction(Theorem):
     def __init__(self, p1: Prop, p2: Prop) -> None:
         """(p1 => p2) => (!p2 => !p1)
 
@@ -228,16 +248,21 @@ class ToInverseNotNot(Theorem):
             p2 (Prop): _description_
         """
         assume1 = Assumption(ImplyProp(p1, p2))  # p1 => p2
-        theorem1 = FromDoubleNot(p1)  # !!p1 => p1
+        theorem1 = NegationElimination(p1)  # !!p1 => p1
         theorem2 = Transitive(theorem1.proof, assume1)  # !!p1 => p2
-        theorem3 = ToDoubleNot(p2)  # p2 => !!p2
+        theorem3 = NegationIntroduction(p2)  # p2 => !!p2
         theorem4 = Transitive(theorem2.proof, theorem3.proof)  # !!p1 => !!p2
-        theorem5 = FromInverseNotNot(
+        theorem5 = ContrapositiveElimination(
             NotProp(p1), NotProp(p2)
         )  # (!!p1 => !!p2) => (!p2 => !p1)
         proof1 = ModusPonens(theorem4.proof, theorem5.proof)  # !p2 => !p1
         theorem6 = Deduction(assume1, proof1)  # (p1 => p2) => (!p2 => !p1)
+
+        self.input = {"prop1": p1, "prop2": p2}
         super().__init__(theorem6.proof)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()})"
 
 
 class Contradiction(Theorem):
@@ -248,8 +273,10 @@ class Contradiction(Theorem):
             p1 (Prop): _description_
             p2 (Prop): _description_
         """
-        theorem1 = ToInverseNotNot(p1, p2)  # (p1 => p2) => (!p2 => !p1)
-        theorem2 = ToInverseNotNot(NotProp(p1), p2)  # (!p1 => p2) => (!p2 => !!p1)
+        theorem1 = ContrapositiveIntroduction(p1, p2)  # (p1 => p2) => (!p2 => !p1)
+        theorem2 = ContrapositiveIntroduction(
+            NotProp(p1), p2
+        )  # (!p1 => p2) => (!p2 => !!p1)
         proof1 = Axiom3(p2, NotProp(p1))  # (!p2 => !!p1) => (!p2 => !p1) => p2
         theorem3 = Transitive(
             theorem2.proof, proof1
@@ -258,17 +285,31 @@ class Contradiction(Theorem):
         theorem5 = Transitive(
             theorem1.proof, theorem4.proof
         )  # (p1 => p2) => (!p1 => p2) => p2
+
+        self.input = {"prop1": p1, "prop2": p2}
         super().__init__(theorem5.proof)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()})"
 
 
 class ExistentialRule(Theorem):
     def __init__(self, prop: Prop, x: Variable, y: Variable) -> None:
+        """prop[x=>y] => (exist x, prop)
+
+        Args:
+            prop (Prop): _description_
+            x (Variable): _description_
+            y (Variable): _description_
+        """
         proof1 = Axiom4(NotProp(prop), x, y)  # (forall x, !prop) => !prop[x => y]
         prop1: ImplyProp = proof1.prop  # type: ignore
-        proof2 = ToInverseNotNot(prop1.left_child, prop1.right_child).proof
+        proof2 = ContrapositiveIntroduction(prop1.left_child, prop1.right_child).proof
         proof3 = ModusPonens(proof1, proof2)  # !!prop[x => y] => !(forall x, !prop)
         prop5: NotProp = prop1.right_child  # type: ignore
-        proof4 = ToDoubleNot(prop5.child).proof  # prop[x => y] => !!prop[x => y]
+        proof4 = NegationIntroduction(
+            prop5.child
+        ).proof  # prop[x => y] => !!prop[x => y]
         proof5 = Transitive(proof4, proof3).proof  # prop[x => y] => !(forall x, !prop)
 
         prop2: ImplyProp = proof5.prop  # type:ignore
@@ -278,4 +319,85 @@ class ExistentialRule(Theorem):
 
         proof7 = Transitive(proof5, proof6).proof
 
+        self.input = {"prop1": prop, "variable1": x, "variable2": y}
         super().__init__(proof7)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['variable1'].__str__()}, {self.input['variable2'].__str__()})"
+
+
+class ConjunctionElimination(Theorem):
+    def __init__(self, p1: Prop, p2: Prop) -> None:
+        """p1 /\\ p2 => p2
+
+        Args:
+            p1 (Prop): _description_
+            p2 (Prop): _description_
+        """
+        proof1 = Axiom1(NotProp(p2), p1)  # !p2 => p1 => !p2
+        proof2 = ContrapositiveIntroduction(
+            NotProp(p2), ImplyProp(p1, NotProp(p2))
+        ).proof  # (!p2 => p1 => !p2) => (!(p1 => !p2) => !!p2)
+        proof3 = ModusPonens(proof1, proof2)  # (!(p1 => !p2) => !!p2)
+        proof4 = NegationElimination(p2).proof  # !!p2 => p2
+        proof5 = Transitive(proof3, proof4).proof  # (!(p1 => !p2) => p2)
+
+        p3 = AndProp(p1, p2)
+        proof6 = AlphaEqAxiom(p3, p3.eval())
+        proof7 = Transitive(proof6, proof5).proof  # (p1 /\\ p2) => p2
+
+        self.input = {"prop1": p1, "prop2": p2}
+        super().__init__(proof7)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()})"
+
+
+class ConjunctionIntroduction(Theorem):
+    def __init__(self, p1: Prop, p2: Prop) -> None:
+        """p1 => p2 => p1 /\\ p2
+
+        Args:
+            p1 (Prop): _description_
+            p2 (Prop): _description_
+        """
+        assume1 = Assumption(p1)
+        assume2 = Assumption(ImplyProp(p1, NotProp(p2)))  # p1 => !p2
+        proof1 = ModusPonens(assume1, assume2)  # !p2
+        proof2 = Deduction(assume2, proof1).proof  # (p1 => !p2) => !p2
+        proof3 = ContrapositiveIntroduction(
+            ImplyProp(p1, NotProp(p2)), NotProp(p2)
+        ).proof  # ((p1 => !p2) => !p2) => !!p2 => !(p1 => !p2)
+        proof4 = ModusPonens(proof2, proof3)  # !!p2 => !(p1 => !p2)
+        proof5 = NegationIntroduction(p2).proof  # p2 => !!p2
+        proof6 = Transitive(proof5, proof4).proof  # p2 => !(p1 => !p2)
+        prop1 = AndProp(p1, p2)  # p1 /\\ p2
+        prop2 = NotProp(ImplyProp(p1, NotProp(p2)))  # !(p1 => !p2)
+        proof7 = AlphaEqAxiom(prop2, prop1)  # !(p1 => !p2) => p1 /\\ p2
+        proof8 = Transitive(proof6, proof7).proof  # p2 => p1 /\\ p2
+        proof9 = Deduction(assume1, proof8).proof  # p1 => (p2 => p1 /\\ p2)
+
+        super().__init__(proof9)
+
+
+class ConjunctionExchange(Theorem):
+    def __init__(self, p1: Prop, p2: Prop) -> None:
+        proof1 = ContrapositiveElimination(
+            NotProp(p2), p1
+        ).proof  # (!!p2 => !p1) => (p1 => !p2)
+        proof2 = NegationElimination(p2).proof  # !!p2 => p2
+        assume1 = Assumption(ImplyProp(p2, NotProp(p1)))  # p2 => !p1
+        proof3 = Transitive(proof2, assume1).proof  # !!p2 => !p1
+        proof4 = ModusPonens(proof3, proof1)  # p1 => !p2
+        proof5 = Deduction(assume1, proof4).proof  # (p2 => !p1) => (p1 => !p2)
+        proof6 = ContrapositiveIntroduction(
+            ImplyProp(p2, NotProp(p1)), ImplyProp(p1, NotProp(p2))
+        ).proof  # ((p2 => !p1) => (p1 => !p2)) => (!(p1 => !p2) => !(p2 => !p1))
+        proof7 = ModusPonens(proof5, proof6)  # !(p1 => !p2) => !(p2 => !p1)
+        prop1 = AndProp(p1, p2)
+        prop2 = AndProp(p2, p1)
+        proof8 = AlphaEqAxiom(prop1, prop1.eval())
+        proof9 = AlphaEqAxiom(prop2.eval(), prop2)
+        proof10 = Transitive(proof8, proof7).proof  # And(p1, p2) => !(p2 => !p1)
+        proof11 = Transitive(proof10, proof9).proof  # And(p1, p2) => And(p2, p1)
+        super().__init__(proof11)

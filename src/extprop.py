@@ -26,6 +26,15 @@ class ExtProp(Prop):
 
 class AndProp(ExtProp):
     def __init__(self, p1: Prop, p2: Prop) -> None:
+        """AndProp
+
+        Args:
+            p1 (Prop): any prop
+            p2 (Prop): any prop
+
+        Returns:
+            !(p1 => !p2)
+        """
         self.left_child = p1
         self.right_child = p2
         p = NotProp(ImplyProp(p1, NotProp(p2)))
