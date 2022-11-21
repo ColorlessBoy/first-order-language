@@ -12,16 +12,28 @@ class ExtProp(Prop):
     def eval(self) -> Prop:
         return self.prop
 
-    def toEvalAxiom(self) -> Proof:
-        prop = ImplyProp(self, self.eval())
-        return Proof(prop)
-
-    def fromEvalAxiom(self) -> Proof:
-        prop = ImplyProp(self.eval(), self)
-        return Proof(prop)
-
     def __eq__(self, __o: Prop) -> bool:
         return self.eval() == __o.eval()
+
+
+class ToEvalAxiom(Proof):
+    def __init__(self, p: ExtProp) -> None:
+        prop = ImplyProp(p, p.eval())
+        self.input = {"prop": prop}
+        super().__init__(prop)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop']})"
+
+
+class FromEvalAxiom(Proof):
+    def __init__(self, p: ExtProp) -> None:
+        prop = ImplyProp(p.eval(), p)
+        self.input = {"prop": prop}
+        super().__init__(prop)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop']})"
 
 
 class AndProp(ExtProp):

@@ -198,14 +198,3 @@ class Generalization(Proof):
 
     def __str__(self) -> str:
         return f"{self.getname()}({self.input['proof1'].__str__()}, {self.input['var1'].__str__()})"
-
-
-# Axiom4 能直接推导出 AlphaEqAxiom 吗？
-class AlphaEqAxiom(Proof):
-    def __init__(self, prop1: Prop, prop2: Prop) -> None:
-        if not prop1.alphaEq(prop2, {}, {}):
-            ValueError("AlphaEq(): proof1 and proof2 are not alphaEq")
-
-        self.input = {"prop1": prop1, "prop2": prop2}
-        self.prop = ImplyProp(prop1, prop2)
-        self.assumption = []

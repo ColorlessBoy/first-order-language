@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from extprop import AndProp, ExistProp
+from extprop import AndProp, ExistProp, FromEvalAxiom, ToEvalAxiom
 from proof import (
-    AlphaEqAxiom,
     Assumption,
     Axiom1,
     Axiom2,
@@ -114,7 +113,8 @@ class Deduction(Theorem):
             "Axiom4",
             "Axiom5",
             "Assumption",
-            "AlphaEqAxiom",
+            "ToEvalAxiom",
+            "FromEvalAxiom",
         ]:
             """proof is not based on assumption x"""
             output = ModusPonens(proof, Axiom1(proof.prop, assumption.prop))
@@ -312,10 +312,8 @@ class ExistentialRule(Theorem):
         ).proof  # prop[x => y] => !!prop[x => y]
         proof5 = Transitive(proof4, proof3).proof  # prop[x => y] => !(forall x, !prop)
 
-        prop2: ImplyProp = proof5.prop  # type:ignore
-        prop3 = prop2.right_child
         prop4 = ExistProp(x, prop)
-        proof6 = AlphaEqAxiom(prop3, prop4)
+        proof6 = FromEvalAxiom(prop4)
 
         proof7 = Transitive(proof5, proof6).proof
 
@@ -343,7 +341,7 @@ class ConjunctionElimination(Theorem):
         proof5 = Transitive(proof3, proof4).proof  # (!(p1 => !p2) => p2)
 
         p3 = AndProp(p1, p2)
-        proof6 = AlphaEqAxiom(p3, p3.eval())
+        proof6 = ToEvalAxiom(p3)
         proof7 = Transitive(proof6, proof5).proof  # (p1 /\\ p2) => p2
 
         self.input = {"prop1": p1, "prop2": p2}
@@ -372,8 +370,7 @@ class ConjunctionIntroduction(Theorem):
         proof5 = NegationIntroduction(p2).proof  # p2 => !!p2
         proof6 = Transitive(proof5, proof4).proof  # p2 => !(p1 => !p2)
         prop1 = AndProp(p1, p2)  # p1 /\\ p2
-        prop2 = NotProp(ImplyProp(p1, NotProp(p2)))  # !(p1 => !p2)
-        proof7 = AlphaEqAxiom(prop2, prop1)  # !(p1 => !p2) => p1 /\\ p2
+        proof7 = FromEvalAxiom(prop1)  # !(p1 => !p2) => p1 /\\ p2
         proof8 = Transitive(proof6, proof7).proof  # p2 => p1 /\\ p2
         proof9 = Deduction(assume1, proof8).proof  # p1 => (p2 => p1 /\\ p2)
 
@@ -382,6 +379,12 @@ class ConjunctionIntroduction(Theorem):
 
 class ConjunctionExchange(Theorem):
     def __init__(self, p1: Prop, p2: Prop) -> None:
+        """p1 /\\ p2 => p2 /\\ p1
+
+        Args:
+            p1 (Prop): _description_
+            p2 (Prop): _description_
+        """
         proof1 = ContrapositiveElimination(
             NotProp(p2), p1
         ).proof  # (!!p2 => !p1) => (p1 => !p2)
@@ -396,8 +399,8 @@ class ConjunctionExchange(Theorem):
         proof7 = ModusPonens(proof5, proof6)  # !(p1 => !p2) => !(p2 => !p1)
         prop1 = AndProp(p1, p2)
         prop2 = AndProp(p2, p1)
-        proof8 = AlphaEqAxiom(prop1, prop1.eval())
-        proof9 = AlphaEqAxiom(prop2.eval(), prop2)
+        proof8 = ToEvalAxiom(prop1)
+        proof9 = FromEvalAxiom(prop2)
         proof10 = Transitive(proof8, proof7).proof  # And(p1, p2) => !(p2 => !p1)
         proof11 = Transitive(proof10, proof9).proof  # And(p1, p2) => And(p2, p1)
         super().__init__(proof11)
