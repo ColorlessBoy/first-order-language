@@ -10,7 +10,7 @@ class ExtProp(Prop):
         self.prop = p
 
     def eval(self) -> Prop:
-        return self.prop
+        return self.prop.eval()
 
     def __eq__(self, __o: Prop) -> bool:
         return self.eval() == __o.eval()
@@ -77,7 +77,7 @@ class IIFProp(ExtProp):
         self.right_child = p2
         p = NotProp(ImplyProp(p1, NotProp(p2)))
         p = AndProp(ImplyProp(p1, p2), ImplyProp(p2, p1))
-        super().__init__(p.eval())
+        super().__init__(p)
 
     def __str__(self) -> str:
         return (

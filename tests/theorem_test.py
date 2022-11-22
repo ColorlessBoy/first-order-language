@@ -5,7 +5,7 @@ sys.path.append("./src")
 
 import unittest
 
-from extprop import AndProp, ExistProp, OrProp
+from extprop import AndProp, ExistProp, IIFProp, OrProp
 from proof import Assumption, Generalization, ModusPonens, Proof
 from prop import ImplyProp, NotProp, VarProp
 from theorem import (
@@ -17,8 +17,18 @@ from theorem import (
     DoubleNotElim,
     DoubleNotIntro,
     ExistIntro,
+    IIFElim,
+    IIFExchange,
+    IIFIntro,
+    IIFToNotIIF,
     ImplyExchange,
+    ImplyNotExchange,
     NotAndToOrNot,
+    NotIIFToIIF,
+    NotImplyExchange,
+    NotImplyIntro,
+    NotImplyToLeft,
+    NotImplyToNotRight,
     NotOrToAndNot,
     NotToNotElim,
     NotToNotIntro,
@@ -138,6 +148,61 @@ class TheoremTest(unittest.TestCase):
         theorem1 = ExistIntro(prop, a, b)
         self.assertEqual(assume1, theorem1.proof)
 
+    def test_NotImplyExchange(self):
+        a = Variable("a")
+        b = Variable("b")
+        vpa = VarProp(a)
+        vpb = VarProp(b)
+        prop1 = ImplyProp(NotProp(vpa), vpb)
+        prop2 = ImplyProp(NotProp(vpb), vpa)
+        assume1 = Assumption(ImplyProp(prop1, prop2))
+        theorem1 = NotImplyExchange(vpa, vpb)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_ImplyNotExchange(self):
+        a = Variable("a")
+        b = Variable("b")
+        vpa = VarProp(a)
+        vpb = VarProp(b)
+        prop1 = ImplyProp(vpa, NotProp(vpb))
+        prop2 = ImplyProp(vpb, NotProp(vpa))
+        assume1 = Assumption(ImplyProp(prop1, prop2))
+        theorem1 = ImplyNotExchange(vpa, vpb)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_NotImplyToLeft(self):
+        a = Variable("a")
+        b = Variable("b")
+        vpa = VarProp(a)
+        vpb = VarProp(b)
+        prop1 = NotProp(ImplyProp(vpa, vpb))
+        prop2 = ImplyProp(prop1, vpa)
+        assume1 = Assumption(prop2)
+        theorem1 = NotImplyToLeft(vpa, vpb)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_NotImplyToNotRight(self):
+        a = Variable("a")
+        b = Variable("b")
+        vpa = VarProp(a)
+        vpb = VarProp(b)
+        prop1 = NotProp(ImplyProp(vpa, vpb))
+        prop2 = ImplyProp(prop1, NotProp(vpb))
+        assume1 = Assumption(prop2)
+        theorem1 = NotImplyToNotRight(vpa, vpb)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_NotImplyIntro(self):
+        a = Variable("a")
+        b = Variable("b")
+        vpa = VarProp(a)
+        vpb = VarProp(b)
+        prop1 = NotProp(ImplyProp(vpa, vpb))
+        prop2 = ImplyProp(vpa, ImplyProp(NotProp(vpb), prop1))
+        assume1 = Assumption(prop2)
+        theorem1 = NotImplyIntro(vpa, vpb)
+        self.assertEqual(assume1, theorem1.proof)
+
     def test_AndElim(self):
         a = Variable("a")
         b = Variable("b")
@@ -219,4 +284,60 @@ class TheoremTest(unittest.TestCase):
         prop2 = AndProp(NotProp(vpa), NotProp(vpb))
         assume1 = Assumption(ImplyProp(prop1, prop2))
         theorem1 = NotOrToAndNot(vpa, vpb)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_IIFElim(self):
+        a = Variable("a")
+        b = Variable("b")
+        vpa = VarProp(a)
+        vpb = VarProp(b)
+        prop1 = IIFProp(vpa, vpb)
+        prop2 = ImplyProp(vpa, vpb)
+        assume1 = Assumption(ImplyProp(prop1, prop2))
+        theorem1 = IIFElim(vpa, vpb)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_IIFIntro(self):
+        a = Variable("a")
+        b = Variable("b")
+        vpa = VarProp(a)
+        vpb = VarProp(b)
+        prop1 = IIFProp(vpa, vpb)
+        prop2 = ImplyProp(vpa, vpb)
+        prop3 = ImplyProp(vpb, vpa)
+        assume1 = Assumption(ImplyProp(prop2, ImplyProp(prop3, prop1)))
+        theorem1 = IIFIntro(vpa, vpb)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_IIFExchange(self):
+        a = Variable("a")
+        b = Variable("b")
+        vpa = VarProp(a)
+        vpb = VarProp(b)
+        prop1 = IIFProp(vpa, vpb)
+        prop2 = IIFProp(vpb, vpa)
+        assume1 = Assumption(ImplyProp(prop1, prop2))
+        theorem1 = IIFExchange(vpa, vpb)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_IIFToNotIIF(self):
+        a = Variable("a")
+        b = Variable("b")
+        vpa = VarProp(a)
+        vpb = VarProp(b)
+        prop1 = IIFProp(vpa, vpb)
+        prop2 = IIFProp(NotProp(vpa), NotProp(vpb))
+        assume1 = Assumption(ImplyProp(prop1, prop2))
+        theorem1 = IIFToNotIIF(vpa, vpb)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_NotIIFToIIF(self):
+        a = Variable("a")
+        b = Variable("b")
+        vpa = VarProp(a)
+        vpb = VarProp(b)
+        prop1 = IIFProp(vpa, vpb)
+        prop2 = IIFProp(NotProp(vpa), NotProp(vpb))
+        assume1 = Assumption(ImplyProp(prop2, prop1))
+        theorem1 = NotIIFToIIF(vpa, vpb)
         self.assertEqual(assume1, theorem1.proof)
