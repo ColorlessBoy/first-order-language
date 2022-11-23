@@ -152,7 +152,8 @@ class ForallProp(Prop):
         self.child = p
         self.freevars = p.freevars.copy()
         self.boundedvars = p.boundedvars.copy()
-        self.freevars.remove(x)
+        if x in self.freevars:
+            self.freevars.remove(x)
         self.boundedvars.add(x)
 
     def substitute(self, x: Variable, y: Variable) -> ForallProp:

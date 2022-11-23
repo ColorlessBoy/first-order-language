@@ -6,8 +6,8 @@ sys.path.append("./src")
 import unittest
 
 from extprop import AndProp, ExistProp, IIFProp, OrProp
-from proof import Assumption, Generalization, ModusPonens, Proof
-from prop import ImplyProp, NotProp, VarProp
+from proof import Assumption, ModusPonens, Proof
+from prop import ForallProp, ImplyProp, NotProp, VarProp
 from theorem import (
     AndElim,
     AndExchange,
@@ -17,10 +17,12 @@ from theorem import (
     DoubleNotElim,
     DoubleNotIntro,
     ExistIntro,
+    ForallExchange,
     IIFElim,
     IIFExchange,
     IIFIntro,
     IIFToNotIIF,
+    IIFTransition,
     ImplyExchange,
     ImplyNotExchange,
     NotAndToOrNot,
@@ -74,21 +76,6 @@ class TheoremTest(unittest.TestCase):
         target = Proof(ImplyProp(assume1.prop, proof1.prop))
 
         self.assertEqual(proof2, target)
-
-    def test_Deduction2(self):
-        """Deduction Theorem: {...T, Assume[a]} |=> b ===> {...T} |=> (a=>b)."""
-        vpa = VarProp(Variable("a"))
-        b = Variable("b")
-        vpb = VarProp(b)
-        assume1 = Assumption(vpa)
-        assume2 = Assumption(ImplyProp(vpa, vpb))
-        proof1 = ModusPonens(assume1, assume2)
-        proof2 = Generalization(proof1, b)
-        proof3 = Deduction(assume1, proof2).proof
-
-        target = Proof(ImplyProp(assume1.prop, proof2.prop))
-
-        self.assertEqual(proof3, target)
 
     def test_ImplyExchange(self):
         vpa = VarProp(Variable("a"))
@@ -340,4 +327,29 @@ class TheoremTest(unittest.TestCase):
         prop2 = IIFProp(NotProp(vpa), NotProp(vpb))
         assume1 = Assumption(ImplyProp(prop2, prop1))
         theorem1 = NotIIFToIIF(vpa, vpb)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_IIFTransition(self):
+        a = Variable("a")
+        b = Variable("b")
+        c = Variable("c")
+        vpa = VarProp(a)
+        vpb = VarProp(b)
+        vpc = VarProp(c)
+        prop1 = IIFProp(vpa, vpb)
+        prop2 = IIFProp(vpb, vpc)
+        prop3 = IIFProp(vpa, vpc)
+        assume1 = Assumption(ImplyProp(prop1, ImplyProp(prop2, prop3)))
+        theorem1 = IIFTransition(vpa, vpb, vpc)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_ForallExchange(self):
+        x = Variable("x")
+        y = Variable("y")
+        c = Variable("c")
+        vpc = VarProp(c)
+        prop1 = ForallProp(x, ForallProp(y, vpc))
+        prop2 = ForallProp(y, ForallProp(x, vpc))
+        assume1 = Assumption(ImplyProp(prop1, prop2))
+        theorem1 = ForallExchange(vpc, x, y)
         self.assertEqual(assume1, theorem1.proof)

@@ -6,11 +6,12 @@ from proof import (
     Axiom1,
     Axiom2,
     Axiom3,
-    Axiom4,
-    Axiom5,
-    Generalization,
+    ForallElimAxiom,
+    ForallImplyExchangeAxiom,
+    ForallIntroAxiom,
     ModusPonens,
     Proof,
+    RenameAxiom,
 )
 from prop import ForallProp, ImplyProp, NotProp, Prop
 from variable import Variable
@@ -110,8 +111,10 @@ class Deduction(Theorem):
             "Axiom1",
             "Axiom2",
             "Axiom3",
-            "Axiom4",
-            "Axiom5",
+            "ForallElimAxiom",
+            "ForallIntroAxiom",
+            "ForallImplyExchangeAxiom",
+            "RenameAxiom",
             "Assumption",
             "ToEvalAxiom",
             "FromEvalAxiom",
@@ -124,17 +127,6 @@ class Deduction(Theorem):
             proof4 = Deduction(assumption, proof2.input["proof2"]).proof
             proof5 = Axiom2(assumption.prop, proof2.input["proof1"].prop, proof2.prop)
             proof6 = ModusPonens(proof3, ModusPonens(proof4, proof5))
-            output = proof6
-        elif proof.getname() == "Generalization":
-            proof1: Generalization = proof  # type: ignore
-            proof3 = Deduction(assumption, proof1.input["proof1"]).proof
-            proof4 = Generalization(proof3, proof1.input["var1"])
-            prop3: ImplyProp = proof3.prop  # type: ignore
-            prop4 = prop3.left_child
-            prop5 = prop3.right_child
-            var = proof1.input["var1"]
-            proof5 = Axiom5(prop4, prop5, var)
-            proof6 = ModusPonens(proof4, proof5)
             output = proof6
         else:
             raise ValueError("Deduction(): Unknown kinds of proof.")
@@ -293,31 +285,36 @@ class Contradiction(Theorem):
 
 class ExistIntro(Theorem):
     def __init__(self, prop: Prop, x: Variable, y: Variable) -> None:
-        """prop[x=>y] => (exist x, prop)
+        """prop[x->y] => (exist x, prop)
 
         Args:
             prop (Prop): _description_
             x (Variable): _description_
             y (Variable): _description_
         """
-        proof1 = Axiom4(NotProp(prop), x, y)  # (forall x, !prop) => !prop[x => y]
+        proof11 = ForallElimAxiom(NotProp(prop), x)  # (forall x, !prop) => !prop
+        proof12 = RenameAxiom(NotProp(prop), x, y)  # !prop => !prop[x -> y]
+        proof1 = Transitive(
+            proof11, proof12
+        ).proof  # (forall x, !prop) => !prop[x -> y]
+
         prop1: ImplyProp = proof1.prop  # type: ignore
         proof2 = NotToNotIntro(prop1.left_child, prop1.right_child).proof
-        proof3 = ModusPonens(proof1, proof2)  # !!prop[x => y] => !(forall x, !prop)
+        proof3 = ModusPonens(proof1, proof2)  # !!prop[x -> y] => !(forall x, !prop)
         prop5: NotProp = prop1.right_child  # type: ignore
-        proof4 = DoubleNotIntro(prop5.child).proof  # prop[x => y] => !!prop[x => y]
-        proof5 = Transitive(proof4, proof3).proof  # prop[x => y] => !(forall x, !prop)
+        proof4 = DoubleNotIntro(prop5.child).proof  # prop[x -> y] => !!prop[x -> y]
+        proof5 = Transitive(proof4, proof3).proof  # prop[x -> y] => !(forall x, !prop)
 
         prop4 = ExistProp(x, prop)
         proof6 = FromEvalAxiom(prop4)
 
         proof7 = Transitive(proof5, proof6).proof
 
-        self.input = {"prop1": prop, "variable1": x, "variable2": y}
+        self.input = {"prop1": prop, "var1": x, "var2": y}
         super().__init__(proof7)
 
     def __str__(self) -> str:
-        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['variable1'].__str__()}, {self.input['variable2'].__str__()})"
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['var1'].__str__()}, {self.input['var2'].__str__()})"
 
 
 class ImplyNotExchange(Theorem):
@@ -810,3 +807,64 @@ class NotIIFToIIF(Theorem):
 
     def __str__(self) -> str:
         return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()})"
+
+
+class IIFTransition(Theorem):
+    def __init__(self, p1: Prop, p2: Prop, p3: Prop) -> None:
+        prop1 = IIFProp(p1, p2)
+        assume1 = Assumption(prop1)
+        proof1 = ModusPonens(assume1, IIFElim(p1, p2).proof)  # p1 => p2
+        proof2 = ModusPonens(assume1, IIFExchange(p1, p2).proof)  # p2 <=> p1
+        proof3 = ModusPonens(proof2, IIFElim(p2, p1).proof)  # p2 => p1
+
+        prop2 = IIFProp(p2, p3)
+        assume2 = Assumption(prop2)
+        proof4 = ModusPonens(assume2, IIFElim(p2, p3).proof)  # p2 => p3
+        proof5 = ModusPonens(assume2, IIFExchange(p2, p3).proof)  # p3 <=> p2
+        proof6 = ModusPonens(proof5, IIFElim(p3, p2).proof)  # p3 => p2
+
+        proof7 = Transitive(proof1, proof4).proof  # p1 => p3
+        proof8 = Transitive(proof6, proof3).proof  # p3 => p1
+
+        proof9 = IIFIntro(p1, p3).proof
+        proof10 = ModusPonens(proof8, ModusPonens(proof7, proof9))  # p1 <=> p3
+
+        proof11 = Deduction(
+            assume1, Deduction(assume2, proof10).proof
+        ).proof  # p1 <=> p2 => p2 <=> p3 => p1 <=> p3
+
+        self.input = {"prop1": p1, "prop2": p2, "prop3": p3}
+        super().__init__(proof11)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()}, {self.input['prop3'].__str__()})"
+
+
+class ForallExchange(Theorem):
+    def __init__(self, p1: Prop, x1: Variable, x2: Variable) -> None:
+        assume1 = Assumption(
+            ForallProp(x1, ForallProp(x2, p1))
+        )  # (forall x1, (forall x2, p1))
+        prop1 = ForallProp(x2, p1)
+        proof2 = ForallElimAxiom(
+            prop1, x1
+        )  # (forall x1, (forall x2, p1)) => (forall x2, p1)
+        proof3 = ModusPonens(assume1, proof2)  # forall x2, p1
+        proof4 = ForallElimAxiom(p1, x2)  # (forall x2, p1) => p1
+        proof5 = ModusPonens(proof3, proof4)  # p1
+
+        proof61 = ForallIntroAxiom(p1, x1)  # p1 => (forall x1, p1)
+        proof6 = ModusPonens(proof5, proof61)  # (forall x1, p1)
+
+        proof71 = ForallIntroAxiom(
+            proof6.prop, x2
+        )  # (forall x1, p1) => (forall x2, (forall x1, p1))
+        proof7 = ModusPonens(proof6, proof71)  # (forall x2, (forall x1, p1))
+
+        proof9 = Deduction(assume1, proof7).proof
+
+        self.input = {"prop1": p1, "var1": x2, "var2": x2}
+        super().__init__(proof9)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['var1'].__str__()}, {self.input['var2'].__str__()})"

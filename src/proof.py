@@ -97,35 +97,41 @@ class Axiom3(Proof):
         return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()})"
 
 
-class Axiom4(Proof):
-    def __init__(self, p: Prop, x: Variable, y: Variable) -> None:
-        """Axiom4
+class ForallElimAxiom(Proof):
+    def __init__(self, p: Prop, x: Variable) -> None:
+        """(forall x, p) => p
 
         Args:
             p (Prop): any prop
-            x (Variable): any variable
-            y (Variable): y should not be bounded in p
-
-        Raises:
-            ValueError: Axiom4(): y should not be bounded in p
-
-        Returns:
-            Proof: \forall x, p => p[x -> y]
+            x (Variable): x should be not bounded in p
         """
-        if p.isbounded(y):
-            raise ValueError("Axiom4(): y should not be bounded in p")
-        self.input = {"prop1": p, "var1": x, "var2": y}
         p1 = ForallProp(x, p)
-        p2 = p.substitute(x, y)
-        p3 = ImplyProp(p1, p2)
-        self.prop = p3
-        self.assumption = []
+        p3 = ImplyProp(p1, p)
+        self.input = {"prop1": p, "var1": x}
+        super().__init__(p3)
 
     def __str__(self) -> str:
-        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['var1'].__str__()}, {self.input['var2'].__str__()})"
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['var1'].__str__()})"
 
 
-class Axiom5(Proof):
+class ForallIntroAxiom(Proof):
+    def __init__(self, p: Prop, x: Variable) -> None:
+        """p => (forall x, p)
+
+        Args:
+            p (Prop): any prop
+            x (Variable): x should be not bounded in p
+        """
+        p1 = ForallProp(x, p)
+        p3 = ImplyProp(p, p1)
+        self.input = {"prop1": p, "var1": x}
+        super().__init__(p3)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['var1'].__str__()})"
+
+
+class ForallImplyExchangeAxiom(Proof):
     def __init__(self, p1: Prop, p2: Prop, x: Variable) -> None:
         """Axiom5
 
@@ -142,15 +148,34 @@ class Axiom5(Proof):
         """
         if p1.isfree(x):
             raise ValueError("Axiom5(): x should not be free in p1")
-        self.input = {"prop1": p1, "prop2": p2, "var1": x}
         p3 = ForallProp(x, ImplyProp(p1, p2))
         p4 = ImplyProp(p1, ForallProp(x, p2))
         p5 = ImplyProp(p3, p4)
-        self.prop = p5
-        self.assumption = []
+
+        self.input = {"prop1": p1, "prop2": p2, "var1": x}
+        super().__init__(p5)
 
     def __str__(self) -> str:
         return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()}, {self.input['var1'].__str__()})"
+
+
+class RenameAxiom(Proof):
+    def __init__(self, p: Prop, x: Variable, y: Variable) -> None:
+        if p.isbounded(x):
+            raise ValueError("RenameAxiom(): x should not be bounded in p")
+        if p.isbounded(y):
+            raise ValueError("RenameAxiom(): y should not be bounded in p")
+        if x != y:
+            p2 = p.substitute(x, y)
+        else:
+            p2 = p
+        p3 = ImplyProp(p, p2)
+
+        self.input = {"prop1": p, "var1": x, "var2": y}
+        super().__init__(p3)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['var1'].__str__()}, {self.input['var2'].__str__()})"
 
 
 class ModusPonens(Proof):
@@ -179,22 +204,3 @@ class ModusPonens(Proof):
 
     def __str__(self) -> str:
         return f"{self.getname()}({self.input['proof1'].__str__()}, {self.input['proof2'].__str__()})"
-
-
-class Generalization(Proof):
-    def __init__(self, proof: Proof, x: Variable) -> None:
-        """Generalization
-
-        Args:
-            proof (Proof): proof(a)
-            x (Variable): any variable
-
-        Returns:
-            Proof: \forall x a
-        """
-        self.input = {"proof1": proof, "var1": x}
-        self.prop = ForallProp(x, proof.prop)
-        self.assumption = proof.assumption
-
-    def __str__(self) -> str:
-        return f"{self.getname()}({self.input['proof1'].__str__()}, {self.input['var1'].__str__()})"
