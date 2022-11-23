@@ -101,13 +101,14 @@ class ForallElimAxiom(Proof):
     def __init__(self, p: Prop, x: Variable, y: Variable) -> None:
         """(forall x, p) => p
 
+        Raise:
+            ValueError("ForallElimAxiom(): y should not be bounded in p")
+
         Args:
             p (Prop): any prop
             x (Variable): x should be not bounded in p
             y (Variable): y should be not bounded in p
         """
-        if p.isbounded(x):
-            raise ValueError("ForallElimAxiom(): x should not be bounded in p")
         if p.isbounded(y):
             raise ValueError("ForallElimAxiom(): y should not be bounded in p")
 
@@ -154,6 +155,8 @@ class Generalization(Proof):
 
         In Deduction Theorem, there are some conditions for Gen(), so we can't get following easily
             proof.prop => (forall x, proof)
+
+            "Deduction(): x which in Gen(..., x) should not be free in assume."
 
         Args:
             proop (Proof): _description_
