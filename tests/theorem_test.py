@@ -125,16 +125,6 @@ class TheoremTest(unittest.TestCase):
         theorem1 = Contradiction(vpa, vpb)
         self.assertEqual(assume1, theorem1.proof)
 
-    def test_ExistIntro(self):
-        a = Variable("a")
-        b = Variable("b")
-        vpa = VarProp(a)
-        vpb = VarProp(b)
-        prop = ImplyProp(vpa, vpb)
-        assume1 = Assumption(ImplyProp(ImplyProp(vpb, vpb), ExistProp(a, prop)))
-        theorem1 = ExistIntro(prop, a, b)
-        self.assertEqual(assume1, theorem1.proof)
-
     def test_NotImplyExchange(self):
         a = Variable("a")
         b = Variable("b")
@@ -346,10 +336,19 @@ class TheoremTest(unittest.TestCase):
     def test_ForallExchange(self):
         x = Variable("x")
         y = Variable("y")
-        c = Variable("c")
-        vpc = VarProp(c)
-        prop1 = ForallProp(x, ForallProp(y, vpc))
-        prop2 = ForallProp(y, ForallProp(x, vpc))
+        vpa = VarProp(Variable("a"))
+        prop1 = ForallProp(x, ForallProp(y, vpa))
+        prop2 = ForallProp(y, ForallProp(x, vpa))
         assume1 = Assumption(ImplyProp(prop1, prop2))
-        theorem1 = ForallExchange(vpc, x, y)
+        theorem1 = ForallExchange(vpa, x, y)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_ExistIntro(self):
+        a = Variable("a")
+        b = Variable("b")
+        vpa = VarProp(a)
+        vpb = VarProp(b)
+        prop = ImplyProp(vpa, vpb)
+        assume1 = Assumption(ImplyProp(ImplyProp(vpb, vpb), ExistProp(a, prop)))
+        theorem1 = ExistIntro(prop, a, b)
         self.assertEqual(assume1, theorem1.proof)

@@ -98,32 +98,27 @@ class Axiom3(Proof):
 
 
 class ForallElimAxiom(Proof):
-    def __init__(self, p: Prop, x: Variable) -> None:
+    def __init__(self, p: Prop, x: Variable, y: Variable) -> None:
         """(forall x, p) => p
 
         Args:
             p (Prop): any prop
             x (Variable): x should be not bounded in p
+            y (Variable): y should be not bounded in p
         """
+        if p.isbounded(x):
+            raise ValueError("ForallElimAxiom(): x should not be bounded in p")
+        if p.isbounded(y):
+            raise ValueError("ForallElimAxiom(): y should not be bounded in p")
+
         p1 = ForallProp(x, p)
-        p3 = ImplyProp(p1, p)
-        self.input = {"prop1": p, "var1": x}
-        super().__init__(p3)
 
-    def __str__(self) -> str:
-        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['var1'].__str__()})"
+        if x == y:
+            p2 = p
+        else:
+            p2 = p.substitute(x, y)
 
-
-class ForallIntroAxiom(Proof):
-    def __init__(self, p: Prop, x: Variable) -> None:
-        """p => (forall x, p)
-
-        Args:
-            p (Prop): any prop
-            x (Variable): x should be not bounded in p
-        """
-        p1 = ForallProp(x, p)
-        p3 = ImplyProp(p, p1)
+        p3 = ImplyProp(p1, p2)
         self.input = {"prop1": p, "var1": x}
         super().__init__(p3)
 
@@ -133,49 +128,44 @@ class ForallIntroAxiom(Proof):
 
 class ForallImplyExchangeAxiom(Proof):
     def __init__(self, p1: Prop, p2: Prop, x: Variable) -> None:
-        """Axiom5
+        """(forall x, p1 => p2) => (p1 => (forall x, p2))
+            where x is not free in p1
 
         Args:
-            p1 (Prop): any prop
-            p2 (Prop): any prop
-            x (Variable): x should not be free in p1
-
-        Raises:
-            ValueError: Axiom5(): x should not be free in p1
-
-        Returns:
-            Proof: (\forall x, p1 => p2) => (p1 => \forall p2)
+            p1 (Prop): _description_
+            p2 (Prop): _description_
+            x (Variable): _description_
         """
         if p1.isfree(x):
-            raise ValueError("Axiom5(): x should not be free in p1")
-        p3 = ForallProp(x, ImplyProp(p1, p2))
-        p4 = ImplyProp(p1, ForallProp(x, p2))
-        p5 = ImplyProp(p3, p4)
-
+            raise ValueError("ForallImplyExchange(): x should not be free in p1")
+        prop1 = ForallProp(x, ImplyProp(p1, p2))
+        prop2 = ImplyProp(p1, ForallProp(x, p2))
+        prop3 = ImplyProp(prop1, prop2)
         self.input = {"prop1": p1, "prop2": p2, "var1": x}
-        super().__init__(p5)
+        super().__init__(prop3)
 
     def __str__(self) -> str:
-        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()}, {self.input['var1'].__str__()})"
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop1'].__str__()}, {self.input['var1'].__str__()})"
 
 
-class RenameAxiom(Proof):
-    def __init__(self, p: Prop, x: Variable, y: Variable) -> None:
-        if p.isbounded(x):
-            raise ValueError("RenameAxiom(): x should not be bounded in p")
-        if p.isbounded(y):
-            raise ValueError("RenameAxiom(): y should not be bounded in p")
-        if x != y:
-            p2 = p.substitute(x, y)
-        else:
-            p2 = p
-        p3 = ImplyProp(p, p2)
+class Generalization(Proof):
+    def __init__(self, proof1: Proof, x: Variable) -> None:
+        """proof |=> (forall x, proof)
 
-        self.input = {"prop1": p, "var1": x, "var2": y}
-        super().__init__(p3)
+        In Deduction Theorem, there are some conditions for Gen(), so we can't get following easily
+            proof.prop => (forall x, proof)
+
+        Args:
+            proop (Proof): _description_
+            x (Variable): _description_
+        """
+        prop = ForallProp(x, proof1.prop)
+        self.input = {"proof1": proof1, "var1": x}
+        super().__init__(prop)
+        self.assumption = proof1.assumption
 
     def __str__(self) -> str:
-        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['var1'].__str__()}, {self.input['var2'].__str__()})"
+        return f"{self.getname()}({self.input['proof1'].__str__()}, {self.input['var1'].__str__()})"
 
 
 class ModusPonens(Proof):
