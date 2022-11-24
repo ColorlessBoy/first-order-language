@@ -898,3 +898,186 @@ class ExistIntro(Theorem):
 
     def __str__(self) -> str:
         return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['var1'].__str__()}, {self.input['var2'].__str__()})"
+
+
+class ForallXYToForallX(Theorem):
+    def __init__(self, prop: Prop, x: Variable, y: Variable) -> None:
+        """(forall x, (forall y, prop)) => (forall x, prop[y->x])
+
+        Args:
+            prop (Prop): _description_
+            x (Variable): _description_
+            y (Variable): _description_
+        """
+        assume1 = Assumption(ForallProp(x, ForallProp(y, prop)))
+        proof1 = ForallElimAxiom(ForallProp(y, prop), x, x)
+        proof2 = ModusPonens(assume1, proof1)  # forall y, prop
+        proof3 = ForallElimAxiom(prop, y, x)  # (forall y, prop) => prop[y->x]
+        proof4 = ModusPonens(proof2, proof3)  # prop[y->x]
+        proof5 = Generalization(proof4, x)  # forall x, prop[y->x]
+        proof6 = Deduction(assume1, proof5).proof
+
+        self.input = {"prop1": prop, "var1": x, "var2": y}
+        super().__init__(proof6)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['var1'].__str__()}, {self.input['var2'].__str__()})"
+
+
+class ForallImplyToImplyForall(Theorem):
+    def __init__(self, prop1: Prop, prop2: Prop, x: Variable) -> None:
+        """(forall x, prop1 => prop2) => (forall x, prop1) => (forall x, prop2)
+
+        Args:
+            prop1 (Prop): _description_
+            prop2 (Prop): _description_
+            x (Variable): _description_
+        """
+        assume1 = Assumption(
+            ForallProp(x, ImplyProp(prop1, prop2))
+        )  # (forall x, prop1 => prop2)
+        proof1 = ForallElimAxiom(ImplyProp(prop1, prop2), x, x)
+        proof2 = ModusPonens(assume1, proof1)  # prop1 => prop2
+        proof3 = ForallElimAxiom(prop1, x, x)  # (forall x, prop1) => prop1
+        proof4 = Transitive(proof3, proof2).proof  # (forall x, prop1) => prop2
+        proof5 = Generalization(proof4, x)  # (forall x, (forall x, prop1) => prop2)
+        proof6 = ForallImplyExchangeAxiom(
+            ForallProp(x, prop1), prop2, x
+        )  # (forall x, (forall x, prop1) => prop2) => (forall x, prop1) => (forall x, prop2)
+        proof7 = ModusPonens(proof5, proof6)  # (forall x, prop1) => (forall x, prop2)
+        proof8 = Deduction(assume1, proof7).proof
+
+        self.input = {"prop1": prop1, "prop2": prop2, "var1": x}
+        super().__init__(proof8)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()}, {self.input['var1'].__str__()})"
+
+
+class ForallImplyToImplyExist(Theorem):
+    def __init__(self, prop1: Prop, prop2: Prop, x: Variable) -> None:
+        """(forall x, prop1 => prop2) => (exist x, prop1) => (exist x, prop2)
+
+        Args:
+            prop1 (Prop): _description_
+            prop2 (Prop): _description_
+            x (Variable): _description_
+        """
+        assume1 = Assumption(
+            ForallProp(x, ImplyProp(prop1, prop2))
+        )  # (forall x, prop1 => prop2)
+        proof1 = ForallElimAxiom(ImplyProp(prop1, prop2), x, x)
+        proof2 = ModusPonens(assume1, proof1)  # prop1 => prop2
+        proof3 = NotToNotIntro(
+            prop1, prop2
+        ).proof  # (prop1 => prop2) => (!prop2 => !prop1)
+        proof4 = ModusPonens(proof2, proof3)  # !prop2 => !prop1
+
+        proof5 = ForallElimAxiom(NotProp(prop2), x, x)  # (forall x, !prop2) => !prop2
+        proof6 = Transitive(proof5, proof4).proof  # (forall x, !prop2) => !prop1
+        proof7 = Generalization(proof6, x)  # (forall x, (forall x, !prop2) => !prop1)
+        proof8 = ForallImplyExchangeAxiom(
+            ForallProp(x, NotProp(prop2)), NotProp(prop1), x
+        )  # (forall x, (forall x, !prop2) => !prop1) => (forall x, !prop2) => (forall x, !prop1)
+        proof9 = ModusPonens(proof7, proof8)  # (forall x, !prop2) => (forall x, !prop1)
+
+        proof10 = NotToNotIntro(
+            ForallProp(x, NotProp(prop2)), ForallProp(x, NotProp(prop1))
+        ).proof
+        proof11 = ModusPonens(
+            proof9, proof10
+        )  # !(forall x, !prop1) => !(forall x, !prop2)
+
+        prop3 = ExistProp(x, prop1)
+        prop4 = ExistProp(x, prop2)
+
+        proof12 = ToEvalAxiom(prop3)
+        proof13 = FromEvalAxiom(prop4)
+
+        proof14 = Transitive(
+            proof12, proof11
+        ).proof  # (exists x, prop1) => !(forall x, !prop2)
+        proof15 = Transitive(
+            proof14, proof13
+        ).proof  # (exists x, prop1) => (exists x, prop2)
+
+        proof16 = Deduction(assume1, proof15).proof
+        self.input = {"prop1": prop1, "prop2": prop2, "var1": x}
+        super().__init__(proof16)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()}, {self.input['var1'].__str__()})"
+
+
+class ForallAndToAndForall(Theorem):
+    def __init__(self, prop1: Prop, prop2: Prop, x: Variable) -> None:
+        """(forall x, prop1 /\\ prop2) => (forall x, prop1) /\\ (forall x, prop2)
+
+        Args:
+            prop1 (Prop): _description_
+            prop2 (Prop): _description_
+            x (Variable): _description_
+        """
+        prop3 = AndProp(prop1, prop2)
+        assume1 = Assumption(ForallProp(x, AndProp(prop1, prop2)))
+        proof1 = ForallElimAxiom(prop3, x, x)
+        proof2 = ModusPonens(assume1, proof1)  # prop1 /\\ prop2
+        proof3 = AndElim(prop1, prop2).proof  # prop1 /\\ prop2  => prop2
+        proof4 = ModusPonens(proof2, proof3)  # prop2
+        proof5 = Generalization(proof4, x)  # (forall x, prop2)
+
+        proof6 = AndExchange(prop1, prop2).proof
+        proof7 = ModusPonens(proof2, proof6)  # prop2 /\\ prop1
+        proof8 = AndElim(prop2, prop1).proof  # prop2 /\\ prop1 => prop1
+        proof9 = ModusPonens(proof7, proof8)  # prop1
+        proof10 = Generalization(proof9, x)  # (forall x, prop1)
+
+        proof11 = AndIntro(ForallProp(x, prop1), ForallProp(x, prop2)).proof
+        proof12 = ModusPonens(proof10, proof11)
+        proof13 = ModusPonens(
+            proof5, proof12
+        )  # (forall x, prop1) /\\ (forall x, prop2)
+
+        proof14 = Deduction(assume1, proof13).proof
+
+        self.input = {"prop1": prop1, "prop2": prop2, "var1": x}
+        super().__init__(proof14)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()}, {self.input['var1'].__str__()})"
+
+
+class NotForallToExistNot(Theorem):
+    def __init__(self, prop1: Prop, x: Variable) -> None:
+        """!(forall x, prop1) => (exists x, !prop1)
+
+        Args:
+            proof (Proof): _description_
+        """
+        prop2 = NotProp(NotProp(prop1))
+        prop3 = ForallProp(x, NotProp(NotProp(prop1)))
+        assume1 = Assumption(prop3)
+        proof1 = ForallElimAxiom(prop2, x, x)  # (forall x, !!prop1) => !!prop1
+        proof2 = ModusPonens(assume1, proof1)  # !!prop1
+        proof3 = DoubleNotElim(prop1).proof  # !!prop1 => prop1
+        proof4 = ModusPonens(proof2, proof3)  # prop1
+        proof5 = Generalization(proof4, x)  # (forall x, prop1)
+        proof6 = Deduction(
+            assume1, proof5
+        ).proof  # (forall x, !!prop1) => (forall x, prop1)
+        proof7 = NotToNotIntro(prop3, ForallProp(x, prop1)).proof
+        proof8 = ModusPonens(
+            proof6, proof7
+        )  # !(forall x, prop1) => !(forall x, !!prop1)
+
+        prop3 = ExistProp(x, NotProp(prop1))
+        proof9 = FromEvalAxiom(prop3)
+        proof10 = Transitive(
+            proof8, proof9
+        ).proof  # !(forall x, prop1) => (exists x, !prop1)
+
+        self.input = {"prop1": prop1, "var1": x}
+        super().__init__(proof10)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['var1'].__str__()})"
