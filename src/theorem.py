@@ -107,7 +107,9 @@ class Deduction(Theorem):
             Proof: a => b
         """
         output = proof
-        if assume == proof:
+        # if assume == proof:
+        #     output = Reflexive(assume.prop).proof
+        if proof.getname() == "Assumption" and assume == proof:
             output = Reflexive(proof.prop).proof
         elif (
             proof.getname()
@@ -149,8 +151,9 @@ class Deduction(Theorem):
             proof3 = Deduction(assume, proof2.input["proof1"]).proof
             proof4 = Deduction(assume, proof2.input["proof2"]).proof
             proof5 = Axiom2(assume.prop, proof2.input["proof1"].prop, proof2.prop)
-            proof6 = ModusPonens(proof3, ModusPonens(proof4, proof5))
-            output = proof6
+            proof6 = ModusPonens(proof4, proof5)
+            proof7 = ModusPonens(proof3, proof6)
+            output = proof7
         else:
             raise ValueError("Deduction(): Unknown kinds of proof.")
 
@@ -1081,3 +1084,85 @@ class NotForallToExistNot(Theorem):
 
     def __str__(self) -> str:
         return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['var1'].__str__()})"
+
+
+class OrForallToForallOr(Theorem):
+    def __init__(self, prop1: Prop, prop2: Prop, x: Variable) -> None:
+        """[(forall x, prop1) \\/ (forall x, prop2)] => (forall x, prop1 \\/ prop2)
+
+        Args:
+            prop1 (Prop): _description_
+            prop2 (Prop): _description_
+            x (Variable): _description_
+        """
+        prop3 = OrProp(ForallProp(x, prop1), ForallProp(x, prop2))
+        assume1 = Assumption(prop3)
+        proof1 = ToEvalAxiom(prop3)
+        proof2 = ModusPonens(assume1, proof1)  # !(forall x, prop1) => (forall x, prop2)
+        proof3 = ForallElimAxiom(prop2, x, x)  # (forall x, prop2) => prop2
+        proof4 = Transitive(proof2, proof3).proof  # !(forall x, prop1) => prop2
+
+        proof5 = NotImplyExchange(ForallProp(x, prop1), prop2).proof
+        proof6 = ModusPonens(proof4, proof5)  # !prop2 => (forall x, prop1)
+        proof7 = ForallElimAxiom(prop1, x, x)  # (forall x, prop1) => prop1
+        proof8 = Transitive(proof6, proof7).proof  # !prop2 => prop1
+
+        proof9 = NotImplyExchange(
+            prop2, prop1
+        ).proof  # (!prop2 => prop1) => (!prop1 => prop2)
+        proof10 = ModusPonens(proof8, proof9)  # !prop1 => prop2
+
+        prop2 = OrProp(prop1, prop2)
+        proof11 = FromEvalAxiom(prop2)  # !prop1 => prop2 => (prop1 \/ prop2)
+        proof12 = ModusPonens(proof10, proof11)  # prop1 \/ prop2
+
+        proof13 = Generalization(proof12, x)  # (forall x, prop1 \/ prop2)
+        proof14 = Deduction(assume1, proof13).proof
+
+        self.input = {"prop1": prop1, "prop2": prop2, "var1": x}
+        super().__init__(proof14)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()}, {self.input['var1'].__str__()})"
+
+
+class ForallOrToOrForallExist(Theorem):
+    def __init__(self, p1: Prop, p2: Prop, x: Variable) -> None:
+        prop1 = OrProp(p1, p2)
+        assume1 = Assumption(ForallProp(x, prop1))
+        proof1 = ForallElimAxiom(prop1, x, x)
+        proof2 = ModusPonens(assume1, proof1)  # p1 \\/ p2
+        proof3 = OrExchange(p1, p2).proof  # p1 \\/ p2 => p2 \\/ p1
+        proof4 = ModusPonens(proof2, proof3)  # p2 \\/ p1
+        prop2 = OrProp(p2, p1)
+        proof5 = ToEvalAxiom(prop2)
+        proof6 = ModusPonens(proof4, proof5)  # !p2 => p1
+        proof7 = ForallElimAxiom(NotProp(p2), x, x)  # (forall x, !p2) => !p2
+        proof8 = Transitive(proof7, proof6).proof  # (forall x, !p2) => p1
+        proof9 = Generalization(proof8, x)  # (forall x, (forall x, !p2) => p1)
+
+        proof10 = ForallImplyExchangeAxiom(
+            ForallProp(x, NotProp(p2)), p1, x
+        )  # (forall x, (forall x, !p2) => p1) => (forall x, !p2) => (forall x, p1)
+        proof11 = ModusPonens(proof9, proof10)  # (forall x, !p2) => (forall x, p1)
+
+        proof12 = NotToNotIntro(ForallProp(x, NotProp(p2)), ForallProp(x, p1)).proof
+        proof13 = ModusPonens(proof11, proof12)  # !(forall x, p1) => !(forall x, !p2)
+
+        prop3 = ExistProp(x, p2)
+        proof14 = FromEvalAxiom(prop3)
+        proof15 = Transitive(
+            proof13, proof14
+        ).proof  # !(forall x, p1) => (exists x, p2)
+
+        prop4 = OrProp(ForallProp(x, p1), prop3)
+        proof17 = FromEvalAxiom(prop4)
+        proof18 = ModusPonens(proof15, proof17)  # (forall x, p1) \\/ (exists x, p2)
+
+        proof19 = Deduction(assume1, proof18).proof
+
+        self.input = {"prop1": p1, "prop2": p2, "var1": x}
+        super().__init__(proof19)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()}, {self.input['var1'].__str__()})"

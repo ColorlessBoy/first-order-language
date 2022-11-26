@@ -21,6 +21,7 @@ from theorem import (
     ForallExchange,
     ForallImplyToImplyExist,
     ForallImplyToImplyForall,
+    ForallOrToOrForallExist,
     ForallXYToForallX,
     IIFElim,
     IIFExchange,
@@ -41,6 +42,7 @@ from theorem import (
     NotToNotIntro,
     OrElim,
     OrExchange,
+    OrForallToForallOr,
     OrIntro,
     Reflexive,
     Transitive,
@@ -414,4 +416,26 @@ class TheoremTest(unittest.TestCase):
         prop2 = ExistProp(x, NotProp(vpa))
         assume1 = Assumption(ImplyProp(prop1, prop2))
         theorem1 = NotForallToExistNot(vpa, x)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_OrForallToForallOr(self):
+        x = Variable("x")
+        vpa = VarProp(Variable("a"))
+        vpb = VarProp(Variable("b"))
+
+        prop1 = OrProp(ForallProp(x, vpa), ForallProp(x, vpb))
+        prop2 = ForallProp(x, OrProp(vpa, vpb))
+        assume1 = Assumption(ImplyProp(prop1, prop2))
+        theorem1 = OrForallToForallOr(vpa, vpb, x)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_ForallOrToOrForallExist(self):
+        x = Variable("x")
+        vpa = VarProp(Variable("a"))
+        vpb = VarProp(Variable("b"))
+
+        prop1 = ForallProp(x, OrProp(vpa, vpb))
+        prop2 = OrProp(ForallProp(x, vpa), ExistProp(x, vpb))
+        assume1 = Assumption(ImplyProp(prop1, prop2))
+        theorem1 = ForallOrToOrForallExist(vpa, vpb, x)
         self.assertEqual(assume1, theorem1.proof)
