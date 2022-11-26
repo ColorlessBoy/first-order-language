@@ -17,9 +17,6 @@ class Proof:
     def eval(self) -> Proof:
         return Proof(self.prop)
 
-    def alphaEq(self, proof: Proof) -> bool:
-        return self.prop.alphaEq(proof.prop, {}, {})
-
     def __eq__(self, __o: Proof) -> bool:
         return self.prop == __o.prop
 

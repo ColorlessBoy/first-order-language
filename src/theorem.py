@@ -1149,20 +1149,15 @@ class ForallOrToOrForallExist(Theorem):
         proof12 = NotToNotIntro(ForallProp(x, NotProp(p2)), ForallProp(x, p1)).proof
         proof13 = ModusPonens(proof11, proof12)  # !(forall x, p1) => !(forall x, !p2)
 
-        prop3 = ExistProp(x, p2)
+        prop3 = OrProp(ForallProp(x, p1), ExistProp(x, p2))
         proof14 = FromEvalAxiom(prop3)
-        proof15 = Transitive(
-            proof13, proof14
-        ).proof  # !(forall x, p1) => (exists x, p2)
 
-        prop4 = OrProp(ForallProp(x, p1), prop3)
-        proof17 = FromEvalAxiom(prop4)
-        proof18 = ModusPonens(proof15, proof17)  # (forall x, p1) \\/ (exists x, p2)
+        proof15 = ModusPonens(proof13, proof14)  # (forall x, p1) \\/ (exists x, p2)
 
-        proof19 = Deduction(assume1, proof18).proof
+        proof16 = Deduction(assume1, proof15).proof
 
         self.input = {"prop1": p1, "prop2": p2, "var1": x}
-        super().__init__(proof19)
+        super().__init__(proof16)
 
     def __str__(self) -> str:
         return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()}, {self.input['var1'].__str__()})"

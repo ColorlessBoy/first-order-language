@@ -3,11 +3,6 @@ from __future__ import annotations
 from variable import Variable
 
 
-# BUG: 在 \forall 里，现在的alphaEq()有些问题，需要适用范围更广的alphaEq()。或者结合Axiom4也可以间接扩展alphaEq()
-# TODO:
-# 1. AndProp AndProof AndInverseProof
-# 2. OrProp OrProof OrInverseProof
-# 3. IIFProp IIFProof IIFInverseProof
 class Prop:
     def __init__(self) -> None:
         self.freevars = set()
@@ -24,14 +19,6 @@ class Prop:
 
     def getname(self) -> str:
         return self.__class__.__name__
-
-    def alphaEq(
-        self,
-        other: Prop,
-        self_var_to_int: dict[Variable, int],
-        other_var_to_int: dict[Variable, int],
-    ) -> bool:
-        return self.getname() == other.getname()
 
     def eval(self) -> Prop:
         return self
@@ -54,15 +41,8 @@ class VarProp(Prop):
             return VarProp(y)
         return self
 
-    def alphaEq(
-        self,
-        other: VarProp,
-        self_var_to_int: dict[Variable, int],
-        other_var_to_int: dict[Variable, int],
-    ) -> bool:
-        return self.getname() == other.getname() and self.variable.alphaEq(
-            other.variable, self_var_to_int, other_var_to_int
-        )
+    def eval(self) -> Prop:
+        return self
 
     def __eq__(self, __o: Prop) -> bool:
         __o2: VarProp = __o  # type: ignore
@@ -84,15 +64,8 @@ class NotProp(Prop):
             return NotProp(self.child.substitute(x, y))
         return self
 
-    def alphaEq(
-        self,
-        other: NotProp,
-        self_var_to_int: dict[Variable, int],
-        other_var_to_int: dict[Variable, int],
-    ) -> bool:
-        return self.getname() == other.getname() and self.child.alphaEq(
-            other.child, self_var_to_int, other_var_to_int
-        )
+    def eval(self) -> Prop:
+        return NotProp(self.child.eval())
 
     def __eq__(self, __o: Prop) -> bool:
         __o2: NotProp = __o  # type: ignore
@@ -117,21 +90,8 @@ class ImplyProp(Prop):
             )
         return self
 
-    def alphaEq(
-        self,
-        other: ImplyProp,
-        self_var_to_int: dict[Variable, int],
-        other_var_to_int: dict[Variable, int],
-    ) -> bool:
-        return (
-            self.getname() == other.getname()
-            and self.left_child.alphaEq(
-                other.left_child, self_var_to_int, other_var_to_int
-            )
-            and self.right_child.alphaEq(
-                other.right_child, self_var_to_int, other_var_to_int
-            )
-        )
+    def eval(self) -> Prop:
+        return ImplyProp(self.left_child.eval(), self.right_child.eval())
 
     def __eq__(self, __o: Prop) -> bool:
         __o2: ImplyProp = __o  # type: ignore
@@ -163,17 +123,8 @@ class ForallProp(Prop):
             return ForallProp(self.variable, self.child.substitute(x, y))
         return self
 
-    def alphaEq(
-        self,
-        other: ForallProp,
-        self_var_to_int: dict[Variable, int],
-        other_var_to_int: dict[Variable, int],
-    ) -> bool:
-        return (
-            self.getname() == other.getname()
-            and self.variable.alphaEq(other.variable, self_var_to_int, other_var_to_int)
-            and self.child.alphaEq(other.child, self_var_to_int, other_var_to_int)
-        )
+    def eval(self) -> Prop:
+        return ForallProp(self.variable, self.child.eval())
 
     def __eq__(self, __o: Prop) -> bool:
         __o2: ForallProp = __o  # type: ignore

@@ -10,7 +10,6 @@ class ExtProp(Prop):
         self.prop = p
 
     def eval(self) -> Prop:
-        # BUG: eval 就展开了一半，未展开所有的ExtProp。
         return self.prop.eval()
 
     def __eq__(self, __o: Prop) -> bool:
