@@ -21,4 +21,4 @@ class ProofTest(unittest.TestCase):
         proof4 = ModusPonens(proof2, proof3)
         proof5 = ModusPonens(proof1, proof4)
 
-        self.assertTrue(proof5.alphaEq(Assumption(p)))
+        self.assertEqual(proof5, Assumption(p))
