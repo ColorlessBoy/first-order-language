@@ -17,10 +17,13 @@ from theorem import (
     DoubleNotElim,
     DoubleNotIntro,
     ExistIntro,
+    ExistToExistExist,
     ForallAndToAndForall,
     ForallExchange,
+    ForallImplyExist,
     ForallImplyToImplyExist,
     ForallImplyToImplyForall,
+    ForallNotToForallNotIntro,
     ForallOrToOrForallExist,
     ForallXYToForallX,
     IIFElim,
@@ -31,6 +34,7 @@ from theorem import (
     ImplyExchange,
     ImplyNotExchange,
     NotAndToOrNot,
+    NotExistToForallNot,
     NotForallToExistNot,
     NotIIFToIIF,
     NotImplyExchange,
@@ -438,4 +442,54 @@ class TheoremTest(unittest.TestCase):
         prop2 = OrProp(ForallProp(x, vpa), ExistProp(x, vpb))
         assume1 = Assumption(ImplyProp(prop1, prop2))
         theorem1 = ForallOrToOrForallExist(vpa, vpb, x)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_ForallNotToForallNotIntro(self):
+        x = Variable("x")
+        vpa = VarProp(Variable("a"))
+        vpb = VarProp(Variable("b"))
+
+        prop1 = ForallProp(x, ImplyProp(vpa, vpb))
+        prop2 = ImplyProp(ForallProp(x, NotProp(vpb)), ForallProp(x, NotProp(vpa)))
+        assume1 = Assumption(ImplyProp(prop1, prop2))
+        theorem1 = ForallNotToForallNotIntro(vpa, vpb, x)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_ForallImplyExist(self):
+        x = Variable("x")
+        y = Variable("y")
+        vpa = VarProp(Variable("a"))
+        vpx = VarProp(x)
+        vpy = VarProp(y)
+        prop1 = ImplyProp(vpa, ImplyProp(vpx, vpy))
+        prop2 = ImplyProp(vpa, ImplyProp(vpx, vpx))
+        prop3 = ForallProp(x, ImplyProp(prop2, ExistProp(y, prop1)))
+        assume1 = Assumption(prop3)
+        theorem1 = ForallImplyExist(prop1, x, y)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_NotExistToForallNot(self):
+        x = Variable("x")
+        vpa = VarProp(Variable("a"))
+        prop1 = NotProp(ExistProp(x, vpa))
+        prop2 = ForallProp(x, NotProp(vpa))
+        prop3 = ImplyProp(prop1, prop2)
+        assume1 = Assumption(prop3)
+        theorem1 = NotExistToForallNot(vpa, x)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_ExistToExistExist(self):
+        x = Variable("x")
+        y = Variable("y")
+        vpx = VarProp(x)
+        vpy = VarProp(y)
+        vpa = VarProp(Variable("a"))
+        prop1 = ImplyProp(vpa, ImplyProp(vpx, vpx))
+        prop2 = ImplyProp(vpa, ImplyProp(vpx, vpy))
+
+        prop3 = ExistProp(x, prop1)
+        prop4 = ExistProp(x, ExistProp(y, prop2))
+        prop5 = ImplyProp(prop3, prop4)
+        assume1 = Assumption(prop5)
+        theorem1 = ExistToExistExist(prop2, x, y)
         self.assertEqual(assume1, theorem1.proof)

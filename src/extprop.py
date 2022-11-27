@@ -17,7 +17,7 @@ class ExtProp(Prop):
 
 
 class ToEvalAxiom(Proof):
-    def __init__(self, p: ExtProp) -> None:
+    def __init__(self, p: Prop) -> None:
         prop = ImplyProp(p, p.eval())
         self.input = {"prop": prop}
         super().__init__(prop)
@@ -27,7 +27,7 @@ class ToEvalAxiom(Proof):
 
 
 class FromEvalAxiom(Proof):
-    def __init__(self, p: ExtProp) -> None:
+    def __init__(self, p: Prop) -> None:
         prop = ImplyProp(p.eval(), p)
         self.input = {"prop": prop}
         super().__init__(prop)
