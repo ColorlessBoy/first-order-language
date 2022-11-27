@@ -458,9 +458,12 @@ class AndIntro(Theorem):
         proof4 = ModusPonens(proof2, proof3)  # !!p2 => !(p1 => !p2)
         proof5 = DoubleNotIntro(p2).proof  # p2 => !!p2
         proof6 = Transitive(proof5, proof4).proof  # p2 => !(p1 => !p2)
+        prop6: ImplyProp = proof6.prop  # type: ignore
+        proof61 = ToEvalAxiom(prop6.right_child)
+        proof62 = Transitive(proof6, proof61).proof
         prop1 = AndProp(p1, p2)  # p1 /\\ p2
         proof7 = FromEvalAxiom(prop1)  # !(p1 => !p2) => p1 /\\ p2
-        proof8 = Transitive(proof6, proof7).proof  # p2 => p1 /\\ p2
+        proof8 = Transitive(proof62, proof7).proof  # p2 => p1 /\\ p2
         proof9 = Deduction(assume1, proof8).proof  # p1 => (p2 => p1 /\\ p2)
 
         self.input = {"prop1": p1, "prop2": p2}
@@ -1275,3 +1278,126 @@ class ExistToExistExist(Theorem):
 
     def __str__(self) -> str:
         return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['var1'].__str__()}, {self.input['var2'].__str__()})"
+
+
+class NotFreeVarForallIntro(Theorem):
+    def __init__(self, p1: Prop, x: Variable) -> None:
+        """p1 => (forall x, p1)
+
+        Args:
+            p1 (Prop): _description_
+            x (Variable): x should not be free in p1
+        """
+        if p1.isfree(x):
+            raise ValueError("ImplyForallIIFForall(): x should be free in p1")
+        proof1 = Reflexive(p1).proof  # p1 => p1
+        proof2 = Generalization(proof1, x)  # (forall x, p1 => p1)
+        proof3 = ForallImplyExchangeAxiom(p1, p1, x)
+        proof4 = ModusPonens(proof2, proof3)  # p1 => (forall x, p1)
+
+        self.input = {"prop1": p1, "var1": x}
+        super().__init__(proof4)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['var1'].__str__()})"
+
+
+class NotFreeVarExistElim(Theorem):
+    def __init__(self, p1: Prop, x: Variable) -> None:
+        """(exist x, p1) => p1
+
+        Args:
+            p1 (Prop): _description_
+            x (Variable): x should not be free in p1
+        """
+        proof1 = NotFreeVarForallIntro(NotProp(p1), x).proof
+        proof2 = NotImplyExchange(p1, ForallProp(x, NotProp(p1))).proof
+        proof3 = ModusPonens(proof1, proof2)  # !(forall x, !p1) => p1
+        proof4 = ToEvalAxiom(ExistProp(x, p1))
+        proof5 = Transitive(proof4, proof3).proof  # (exist x, p1) => p1
+
+        self.input = {"prop1": p1, "var1": x}
+        super().__init__(proof5)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['var1'].__str__()})"
+
+
+class NotFreeVarImplyForallIIFForall(Theorem):
+    def __init__(self, p1: Prop, p2: Prop, x: Variable) -> None:
+        """(p1 => (forall x, p2)) <=> (forall x, p1 => p2)
+
+        Args:
+            p1 (Prop): _description_
+            p2 (Prop): _description_
+            x (Variable): x is not free in p1
+        """
+        if p1.isfree(x):
+            raise ValueError("ImplyForallIIFForall(): x should be free in p1")
+
+        proof1 = ForallImplyExchangeAxiom(
+            p1, p2, x
+        )  # (forall x, p1 => p2) => (p1 => (forall x, p2))
+
+        assume1 = Assumption(ImplyProp(p1, ForallProp(x, p2)))
+        proof3 = ForallElimAxiom(p2, x, x)  # (forall x, p2) => p2
+        proof4 = Transitive(assume1, proof3).proof  # p1 => p2
+        proof5 = Generalization(proof4, x)
+        proof6 = Deduction(assume1, proof5).proof
+
+        proof7 = IIFIntro(
+            ImplyProp(p1, ForallProp(x, p2)), ForallProp(x, ImplyProp(p1, p2))
+        ).proof
+        proof8 = ModusPonens(proof6, proof7)
+        proof9 = ModusPonens(proof1, proof8)
+
+        self.input = {"prop1": p1, "prop2": p2, "var1": x}
+        super().__init__(proof9)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()}, {self.input['var1'].__str__()})"
+
+
+class NotFreeVarImplyExistIIFForall(Theorem):
+    def __init__(self, p1: Prop, p2: Prop, x: Variable) -> None:
+        """((exists x, p2) => p1) => (forall x, (p2 => p1))
+
+        Args:
+            p1 (Prop): _description_
+            p2 (Prop): _description_
+            x (Variable): x should not be free in p1
+        """
+        prop1 = ForallProp(x, ImplyProp(p2, p1))
+        assume1 = Assumption(prop1)  # (forall x, p2 => p1)
+        proof1 = ForallImplyToImplyExist(p2, p1, x).proof
+        proof2 = ModusPonens(assume1, proof1)  # (exists x, p2) => (exists x, p1)
+        proof3 = NotFreeVarExistElim(p1, x).proof  # (exists x, p1) => p1
+        proof4 = Transitive(proof2, proof3).proof  # (exists x1, p2) => p1
+        proof5 = Deduction(
+            assume1, proof4
+        ).proof  # (forall x, p2 => p1) => ((exists x1, p2) => p1)
+
+        prop2 = ImplyProp(ExistProp(x, p2), p1)
+        assume2 = Assumption(prop2)  # (exists x, p2) => p1
+        proof6 = FromEvalAxiom(ExistProp(x, p2))
+        proof7 = Transitive(proof6, assume2).proof  # (!(forall x, !p2) => p1)
+        proof8 = NotImplyExchange(ForallProp(x, NotProp(p2)), p1).proof
+        proof9 = ModusPonens(proof7, proof8)  # !p1 => (forall x, !p2)
+        proof10 = ForallElimAxiom(NotProp(p2), x, x)
+        proof11 = Transitive(proof9, proof10).proof  # !p1 => !p2
+        proof12 = NotToNotElim(p1, p2).proof
+        proof13 = ModusPonens(proof11, proof12)  # p2 => p1
+        proof14 = Generalization(proof13, x)  # (forall x, p2 => p1)
+        proof15 = Deduction(
+            assume2, proof14
+        ).proof  # ((exists x, p2) => p1) => (forall x, p2 => p1)
+
+        proof16 = IIFIntro(prop2, prop1).proof
+        proof17 = ModusPonens(proof15, proof16)
+        proof18 = ModusPonens(proof5, proof17)
+
+        self.input = {"prop1": p1, "prop2": p2, "var1": x}
+        super().__init__(proof18)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()}, {self.input['var1'].__str__()})"

@@ -36,6 +36,10 @@ from theorem import (
     NotAndToOrNot,
     NotExistToForallNot,
     NotForallToExistNot,
+    NotFreeVarExistElim,
+    NotFreeVarForallIntro,
+    NotFreeVarImplyExistIIFForall,
+    NotFreeVarImplyForallIIFForall,
     NotIIFToIIF,
     NotImplyExchange,
     NotImplyIntro,
@@ -492,4 +496,38 @@ class TheoremTest(unittest.TestCase):
         prop5 = ImplyProp(prop3, prop4)
         assume1 = Assumption(prop5)
         theorem1 = ExistToExistExist(prop2, x, y)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_NotFreeVarForallIntro(self):
+        vpa = VarProp(Variable("a"))
+        x = Variable("x")
+        assume1 = Assumption(ImplyProp(vpa, ForallProp(x, vpa)))
+        theorem1 = NotFreeVarForallIntro(vpa, x)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_NotFreeVarExistElim(self):
+        vpa = VarProp(Variable("a"))
+        x = Variable("x")
+        assume1 = Assumption(ImplyProp(ExistProp(x, vpa), vpa))
+        theorem1 = NotFreeVarExistElim(vpa, x)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_NotFreeVarImplyForallIIFForall(self):
+        vpa = VarProp(Variable("a"))
+        vpb = VarProp(Variable("b"))
+        x = Variable("x")
+        prop1 = ImplyProp(vpa, ForallProp(x, vpb))
+        prop2 = ForallProp(x, ImplyProp(vpa, vpb))
+        assume1 = Assumption(IIFProp(prop1, prop2))
+        theorem1 = NotFreeVarImplyForallIIFForall(vpa, vpb, x)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_NotFreeVarImplyExistIIFForall(self):
+        vpa = VarProp(Variable("a"))
+        vpb = VarProp(Variable("b"))
+        x = Variable("x")
+        prop1 = ImplyProp(ExistProp(x, vpb), vpa)
+        prop2 = ForallProp(x, ImplyProp(vpb, vpa))
+        assume1 = Assumption(IIFProp(prop1, prop2))
+        theorem1 = NotFreeVarImplyExistIIFForall(vpa, vpb, x)
         self.assertEqual(assume1, theorem1.proof)
