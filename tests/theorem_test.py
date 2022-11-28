@@ -20,6 +20,7 @@ from theorem import (
     ExistToExistExist,
     ForallAndToAndForall,
     ForallExchange,
+    ForallIIFExchange,
     ForallImplyExist,
     ForallImplyToImplyExist,
     ForallImplyToImplyForall,
@@ -530,4 +531,14 @@ class TheoremTest(unittest.TestCase):
         prop2 = ForallProp(x, ImplyProp(vpb, vpa))
         assume1 = Assumption(IIFProp(prop1, prop2))
         theorem1 = NotFreeVarImplyExistIIFForall(vpa, vpb, x)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_ForallIIFExchange(self):
+        vpa = VarProp(Variable("a"))
+        vpb = VarProp(Variable("b"))
+        x = Variable("x")
+        prop1 = ForallProp(x, IIFProp(vpa, vpb))
+        prop2 = IIFProp(ForallProp(x, vpa), ForallProp(x, vpb))
+        assume1 = Assumption(ImplyProp(prop1, prop2))
+        theorem1 = ForallIIFExchange(vpa, vpb, x)
         self.assertEqual(assume1, theorem1.proof)

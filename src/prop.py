@@ -17,6 +17,9 @@ class Prop:
     def substitute(self, x: Variable, y: Variable) -> Prop:
         return self
 
+    def replacement(self, p1: Prop, p2: Prop) -> Prop:
+        return self
+
     def getname(self) -> str:
         return self.__class__.__name__
 
@@ -41,6 +44,11 @@ class VarProp(Prop):
             return VarProp(y)
         return self
 
+    def replacement(self, p1: Prop, p2: Prop) -> Prop:
+        if self == p1:
+            return p2
+        return self
+
     def eval(self) -> Prop:
         return self
 
@@ -63,6 +71,11 @@ class NotProp(Prop):
         if self.isfree(x) or self.isbounded(x):
             return NotProp(self.child.substitute(x, y))
         return self
+
+    def replacement(self, p1: Prop, p2: Prop) -> Prop:
+        if self == p1:
+            return p2
+        return NotProp(self.child.replacement(p1, p2))
 
     def eval(self) -> Prop:
         return NotProp(self.child.eval())
@@ -89,6 +102,13 @@ class ImplyProp(Prop):
                 self.left_child.substitute(x, y), self.right_child.substitute(x, y)
             )
         return self
+
+    def replacement(self, p1: Prop, p2: Prop) -> Prop:
+        if self == p1:
+            return p2
+        return ImplyProp(
+            self.left_child.replacement(p1, p2), self.right_child.replacement(p1, p2)
+        )
 
     def eval(self) -> Prop:
         return ImplyProp(self.left_child.eval(), self.right_child.eval())
@@ -122,6 +142,11 @@ class ForallProp(Prop):
                 return ForallProp(y, self.child.substitute(x, y))
             return ForallProp(self.variable, self.child.substitute(x, y))
         return self
+
+    def replacement(self, p1: Prop, p2: Prop) -> Prop:
+        if self == p1:
+            return p2
+        return ForallProp(self.variable, self.child.replacement(p1, p2))
 
     def eval(self) -> Prop:
         return ForallProp(self.variable, self.child.eval())

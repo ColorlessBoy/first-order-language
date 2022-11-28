@@ -1401,3 +1401,49 @@ class NotFreeVarImplyExistIIFForall(Theorem):
 
     def __str__(self) -> str:
         return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()}, {self.input['var1'].__str__()})"
+
+
+class ForallIIFExchange(Theorem):
+    def __init__(self, p1: Prop, p2: Prop, x: Variable) -> None:
+        """(forall x, p1 <=> p2) => (forall x, p1) <=> (forall x, p2)
+
+        Args:
+            p1 (Prop): _description_
+            p2 (Prop): _description_
+            x (Variable): _description_
+        """
+        assume1 = Assumption(ForallProp(x, IIFProp(p1, p2)))
+        assume2 = Assumption(ForallProp(x, p1))
+        assume3 = Assumption(ForallProp(x, p2))
+
+        proof1 = ForallElimAxiom(IIFProp(p1, p2), x, x)
+        proof2 = ModusPonens(assume1, proof1)  # p1 <=> p2
+        proof21 = IIFElim(p1, p2).proof
+        proof22 = ModusPonens(proof2, proof21)  # p1 => p2
+        proof3 = ForallElimAxiom(p1, x, x)
+        proof4 = ModusPonens(assume2, proof3)  # p1
+        proof5 = ModusPonens(proof4, proof22)  # p2
+        proof6 = Generalization(proof5, x)  # (forall x, p2)
+        proof7 = Deduction(assume2, proof6).proof  # (forall x, p1) => (forall x, p2)
+
+        proof9 = IIFExchange(p1, p2).proof
+        proof10 = ModusPonens(proof2, proof9)  # p2 <=> p1
+        proof11 = IIFElim(p2, p1).proof
+        proof12 = ModusPonens(proof10, proof11)  # p2 => p1
+        proof13 = ForallElimAxiom(p2, x, x)
+        proof14 = ModusPonens(assume3, proof13)  # p2
+        proof15 = ModusPonens(proof14, proof12)  # p1
+        proof16 = Generalization(proof15, x)  # (forall x, p1)
+        proof17 = Deduction(assume3, proof16).proof  # (forall x, p2) => (forall x, p1)
+
+        proof18 = IIFIntro(ForallProp(x, p1), ForallProp(x, p2)).proof
+        proof19 = ModusPonens(proof7, proof18)
+        proof20 = ModusPonens(proof17, proof19)  # (forall x, p1) <=> (forall x, p2)
+
+        proof21 = Deduction(assume1, proof20).proof
+
+        self.input = {"prop1": p1, "prop2": p2, "var1": x}
+        super().__init__(proof21)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()}, {self.input['var1'].__str__()})"

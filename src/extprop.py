@@ -52,6 +52,20 @@ class AndProp(ExtProp):
         p = NotProp(ImplyProp(p1, NotProp(p2)))
         super().__init__(p)
 
+    def substitute(self, x: Variable, y: Variable) -> AndProp:
+        if self.isfree(x) or self.isbounded(x):
+            return AndProp(
+                self.left_child.substitute(x, y), self.right_child.substitute(x, y)
+            )
+        return self
+
+    def replacement(self, p1: Prop, p2: Prop) -> Prop:
+        if self == p1:
+            return p2
+        return AndProp(
+            self.left_child.replacement(p1, p2), self.right_child.replacement(p1, p2)
+        )
+
     def __str__(self) -> str:
         return (
             "(" + self.left_child.__str__() + "/\\" + self.right_child.__str__() + ")"
@@ -64,6 +78,20 @@ class OrProp(ExtProp):
         self.right_child = p2
         p = ImplyProp(NotProp(p1), p2)
         super().__init__(p)
+
+    def substitute(self, x: Variable, y: Variable) -> OrProp:
+        if self.isfree(x) or self.isbounded(x):
+            return OrProp(
+                self.left_child.substitute(x, y), self.right_child.substitute(x, y)
+            )
+        return self
+
+    def replacement(self, p1: Prop, p2: Prop) -> Prop:
+        if self == p1:
+            return p2
+        return OrProp(
+            self.left_child.replacement(p1, p2), self.right_child.replacement(p1, p2)
+        )
 
     def __str__(self) -> str:
         return (
@@ -79,6 +107,20 @@ class IIFProp(ExtProp):
         p = AndProp(ImplyProp(p1, p2), ImplyProp(p2, p1))
         super().__init__(p)
 
+    def substitute(self, x: Variable, y: Variable) -> IIFProp:
+        if self.isfree(x) or self.isbounded(x):
+            return IIFProp(
+                self.left_child.substitute(x, y), self.right_child.substitute(x, y)
+            )
+        return self
+
+    def replacement(self, p1: Prop, p2: Prop) -> Prop:
+        if self == p1:
+            return p2
+        return IIFProp(
+            self.left_child.replacement(p1, p2), self.right_child.replacement(p1, p2)
+        )
+
     def __str__(self) -> str:
         return (
             "(" + self.left_child.__str__() + "<=>" + self.right_child.__str__() + ")"
@@ -91,6 +133,18 @@ class ExistProp(ExtProp):
         self.child = p
         p = NotProp(ForallProp(x, NotProp(p)))
         super().__init__(p)
+
+    def substitute(self, x: Variable, y: Variable) -> ExistProp:
+        if self.isfree(x) or self.isbounded(x):
+            if self.variable == x:
+                return ExistProp(y, self.child.substitute(x, y))
+            return ExistProp(self.variable, self.child.substitute(x, y))
+        return self
+
+    def replacement(self, p1: Prop, p2: Prop) -> Prop:
+        if self == p1:
+            return p2
+        return ExistProp(self.variable, self.child.replacement(p1, p2))
 
     def __str__(self) -> str:
         return "(exists " + self.variable.__str__() + "," + self.child.__str__() + ")"
