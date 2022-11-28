@@ -30,9 +30,11 @@ from theorem import (
     IIFElim,
     IIFExchange,
     IIFIntro,
+    IIFReflexive,
     IIFToNotIIF,
     IIFTransition,
     ImplyExchange,
+    ImplyIIFExchange,
     ImplyNotExchange,
     NotAndToOrNot,
     NotExistToForallNot,
@@ -54,6 +56,7 @@ from theorem import (
     OrForallToForallOr,
     OrIntro,
     Reflexive,
+    Replacement,
     Transitive,
 )
 from variable import Variable
@@ -302,6 +305,12 @@ class TheoremTest(unittest.TestCase):
         theorem1 = IIFIntro(vpa, vpb)
         self.assertEqual(assume1, theorem1.proof)
 
+    def test_IIFReflexive(self):
+        vpa = VarProp(Variable("a"))
+        assume1 = Assumption(IIFProp(vpa, vpa))
+        theorem1 = IIFReflexive(vpa)
+        self.assertEqual(assume1, theorem1.proof)
+
     def test_IIFExchange(self):
         a = Variable("a")
         b = Variable("b")
@@ -542,3 +551,82 @@ class TheoremTest(unittest.TestCase):
         assume1 = Assumption(ImplyProp(prop1, prop2))
         theorem1 = ForallIIFExchange(vpa, vpb, x)
         self.assertEqual(assume1, theorem1.proof)
+
+    def test_ImplyIIFExchange(self):
+        vpa = VarProp(Variable("a"))
+        vpb = VarProp(Variable("b"))
+        vpc = VarProp(Variable("c"))
+        vpd = VarProp(Variable("d"))
+        prop1 = IIFProp(vpa, vpb)
+        prop2 = IIFProp(vpc, vpd)
+        prop3 = IIFProp(ImplyProp(vpa, vpc), ImplyProp(vpb, vpd))
+        prop4 = ImplyProp(prop1, ImplyProp(prop2, prop3))
+        assume1 = Assumption(prop4)
+        theorem1 = ImplyIIFExchange(vpa, vpb, vpc, vpd)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_Replacement1(self):
+        a = Variable("a")
+        b = Variable("b")
+        x = Variable("x")
+        p1 = VarProp(a)
+        p2 = VarProp(b)
+        p3 = NotProp(ImplyProp(VarProp(x), ImplyProp(p1, p2)))
+        p4 = NotProp(ImplyProp(VarProp(x), ImplyProp(p2, p2)))
+
+        prop1 = ForallProp(b, ForallProp(a, IIFProp(p1, p2)))
+        prop2 = IIFProp(p3, p4)
+        prop3 = ImplyProp(prop1, prop2)
+        assume1 = Assumption(prop3)
+
+        prop1 = ForallProp(a, ForallProp(b, IIFProp(p1, p2)))
+        prop2 = IIFProp(p3, p4)
+        prop3 = ImplyProp(prop1, prop2)
+        assume2 = Assumption(prop3)
+
+        theorem1 = Replacement(p1, p2, p3)
+        self.assertTrue(assume1 == theorem1.proof or assume2 == theorem1.proof)
+
+    def test_Replacement2(self):
+        a = Variable("a")
+        b = Variable("b")
+        x = Variable("x")
+        p1 = VarProp(a)
+        p2 = VarProp(b)
+        p3 = ImplyProp(VarProp(x), ImplyProp(p1, p2))
+        p4 = ImplyProp(VarProp(x), ImplyProp(p2, p2))
+
+        prop1 = ForallProp(b, ForallProp(a, IIFProp(p1, p2)))
+        prop2 = IIFProp(p3, p4)
+        prop3 = ImplyProp(prop1, prop2)
+        assume1 = Assumption(prop3)
+
+        prop1 = ForallProp(a, ForallProp(b, IIFProp(p1, p2)))
+        prop2 = IIFProp(p3, p4)
+        prop3 = ImplyProp(prop1, prop2)
+        assume2 = Assumption(prop3)
+
+        theorem1 = Replacement(p1, p2, p3)
+        self.assertTrue(assume1 == theorem1.proof or assume2 == theorem1.proof)
+
+    def test_Replacement3(self):
+        a = Variable("a")
+        b = Variable("b")
+        x = Variable("x")
+        p1 = VarProp(a)
+        p2 = VarProp(b)
+        p3 = ForallProp(x, ImplyProp(p1, p2))
+        p4 = ForallProp(x, ImplyProp(p2, p2))
+
+        prop1 = ForallProp(a, ForallProp(b, IIFProp(p1, p2)))
+        prop2 = IIFProp(p3, p4)
+        prop3 = ImplyProp(prop1, prop2)
+        assume1 = Assumption(prop3)
+
+        prop1 = ForallProp(b, ForallProp(a, IIFProp(p1, p2)))
+        prop2 = IIFProp(p3, p4)
+        prop3 = ImplyProp(prop1, prop2)
+        assume2 = Assumption(prop3)
+
+        theorem1 = Replacement(p1, p2, p3)
+        self.assertTrue(assume1 == theorem1.proof or assume2 == theorem1.proof)

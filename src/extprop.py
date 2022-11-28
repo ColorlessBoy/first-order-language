@@ -8,6 +8,8 @@ class ExtProp(Prop):
     def __init__(self, p: Prop) -> None:
         super().__init__()
         self.prop = p
+        self.freevars = p.freevars
+        self.boundedvars = p.boundedvars
 
     def eval(self) -> Prop:
         return self.prop.eval()

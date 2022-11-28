@@ -695,6 +695,18 @@ class IIFIntro(Theorem):
         return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()})"
 
 
+class IIFReflexive(Theorem):
+    def __init__(self, p1: Prop) -> None:
+        proof1 = IIFIntro(p1, p1).proof
+        proof2 = Reflexive(p1).proof
+        proof3 = ModusPonens(proof2, ModusPonens(proof2, proof1))
+        self.input = {"prop1": p1}
+        super().__init__(proof3)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()})"
+
+
 class IIFExchange(Theorem):
     def __init__(self, p1: Prop, p2: Prop) -> None:
         """(p1 <=> p2) => (p2 <=> p1)
@@ -1447,3 +1459,124 @@ class ForallIIFExchange(Theorem):
 
     def __str__(self) -> str:
         return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()}, {self.input['var1'].__str__()})"
+
+
+class ImplyIIFExchange(Theorem):
+    def __init__(self, p1: Prop, p2: Prop, p3: Prop, p4: Prop) -> None:
+        """(p1 <=> p2) => (p3 <=> p4) => (p1 => p3) <=> (p2 => p4)
+
+        Args:
+            p1 (Prop): _description_
+            p2 (Prop): _description_
+            p3 (Prop): _description_
+            p4 (Prop): _description_
+        """
+        assume1 = Assumption(IIFProp(p1, p2))  # p1 <=> p2
+        assume2 = Assumption(IIFProp(p3, p4))  # p3 <=> p4
+        assume3 = Assumption(ImplyProp(p1, p3))  # p1 => p3
+
+        proof1 = ModusPonens(assume1, IIFExchange(p1, p2).proof)  # p2 <=> p1
+        proof2 = ModusPonens(proof1, IIFElim(p2, p1).proof)  # p2 => p1
+        proof3 = Transitive(proof2, assume3).proof  # p2 => p3
+        proof4 = ModusPonens(assume2, IIFElim(p3, p4).proof)  # p3 => p4
+        proof5 = Transitive(proof3, proof4).proof  # p2 => p4
+        proof6 = Deduction(assume3, proof5).proof  # (p1 => p3) => (p2 => p4)
+
+        assume4 = Assumption(ImplyProp(p2, p4))  # p2 => p4
+        proof7 = ModusPonens(assume1, IIFElim(p1, p2).proof)  # p1 => p2
+        proof8 = Transitive(proof7, assume4).proof  # p1 => P4
+        proof9 = ModusPonens(assume2, IIFExchange(p3, p4).proof)  # p4 <=> p3
+        proof10 = ModusPonens(proof9, IIFElim(p4, p3).proof)  # p4 => p3
+        proof11 = Transitive(proof8, proof10).proof  # p1 => p3
+        proof12 = Deduction(assume4, proof11).proof  # (p2 => P4) => (p1 => p3)
+
+        proof13 = IIFIntro(ImplyProp(p1, p3), ImplyProp(p2, p4)).proof
+        proof14 = ModusPonens(proof6, proof13)
+        proof15 = ModusPonens(proof12, proof14)  # (p1 => p3) <=> (p2 => p4)
+
+        proof16 = Deduction(assume2, proof15).proof
+        proof17 = Deduction(assume1, proof16).proof
+
+        self.input = {
+            "prop1": p1,
+            "prop2": p2,
+            "prop3": p3,
+            "prop4": p4,
+        }
+        super().__init__(proof17)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()}, {self.input['prop3'].__str__()}, {self.input['prop4'].__str__()})"
+
+
+# TODO: extprop
+class Replacement(Theorem):
+    def __init__(self, p1: Prop, p2: Prop, p3: Prop) -> None:
+        """[forall x1, x2, ..., xn, (p1 <=> p2)] => [p3 <=> p3[p1->p2]]
+
+        Args:
+            p1 (Prop): _description_
+            p2 (Prop): _description_
+            p3 (Prop): _description_
+        """
+        prop1 = IIFProp(p1, p2)
+        prop2 = IIFProp(p1, p2)
+        varlist = []
+        for var in prop1.freevars:
+            prop2 = ForallProp(var, prop2)
+            varlist.append(var)
+        assume1 = Assumption(prop2)
+
+        output = IIFReflexive(p3).proof
+        if p3 == p1:
+            varlist = varlist[::-1]
+            proof1 = assume1
+            for var in varlist:
+                prop3: ForallProp = proof1.prop  # type:ignore
+                proof2 = ForallElimAxiom(prop3.child, var, var)
+                proof1 = ModusPonens(proof1, proof2)  # (p1 <=> p2)
+            output = proof1
+        elif p3.getname() == "NotProp":
+            prop4: NotProp = p3  # type:ignore
+            proof2 = Replacement(
+                p1, p2, prop4.child
+            ).proof  # assume1 => [p3.child <=> p3.child[p1->p2]]
+            proof3 = ModusPonens(assume1, proof2)  # p3.child <=> p3.child[p1->p2]
+            prop5: IIFProp = proof3.prop  # type:ignore
+            proof4 = IIFToNotIIF(prop5.left_child, prop5.right_child).proof
+            output = ModusPonens(proof3, proof4)  # p3 <=> p3[p1->p2]
+        elif p3.getname() == "ImplyProp":
+            prop6: ImplyProp = p3  # type:ignore
+            proof2 = Replacement(p1, p2, prop6.left_child).proof
+            proof3 = Replacement(p1, p2, prop6.right_child).proof
+            proof4 = ModusPonens(
+                assume1, proof2
+            )  # p3.left_child <=> p3.left_child[p1->p2]
+            proof5 = ModusPonens(
+                assume1, proof3
+            )  # p3.right_child <=> p3.right_child[p1->p2]
+            prop7: ImplyProp = proof4.prop  # type:ignore
+            prop8: ImplyProp = proof5.prop  # type:ignore
+            proof6 = ImplyIIFExchange(
+                prop7.left_child, prop7.right_child, prop8.left_child, prop8.right_child
+            ).proof
+            output = ModusPonens(
+                proof5, ModusPonens(proof4, proof6)
+            )  # p3 <=> p3[p1 -> p2]
+        elif p3.getname() == "ForallProp":
+            prop9: ForallProp = p3  # type:ignore
+            proof13 = Replacement(p1, p2, prop9.child).proof
+            proof14 = ModusPonens(assume1, proof13)  # p3.child <=> p3.child[p1->p2]
+            prop10: IIFProp = proof14.prop  # type:ignore
+            proof15 = Generalization(proof14, prop9.variable)
+            proof16 = ForallIIFExchange(
+                prop10.left_child, prop10.right_child, prop9.variable
+            ).proof
+            output = ModusPonens(proof15, proof16)  # p3 <=> p3[p1->p2]
+
+        output = Deduction(assume1, output).proof
+        self.input = {"prop1": p1, "prop2": p2, "prop3": p3}
+        super().__init__(output)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()}, {self.input['prop3'].__str__()})"
