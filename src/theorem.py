@@ -107,8 +107,6 @@ class Deduction(Theorem):
             Proof: a => b
         """
         output = proof
-        # if assume == proof:
-        #     output = Reflexive(assume.prop).proof
         if proof.getname() == "Assumption" and assume == proof:
             output = Reflexive(proof.prop).proof
         elif (
@@ -430,8 +428,13 @@ class AndElim(Theorem):
         proof5 = Transitive(proof3, proof4).proof  # (!(p1 => !p2) => p2)
 
         p3 = AndProp(p1, p2)
-        proof6 = ToEvalAxiom(p3)
-        proof7 = Transitive(proof6, proof5).proof  # (p1 /\\ p2) => p2
+        proof6 = ToEvalAxiom(p3)  # p1 /\\ p2 => !(p1.eval() => !p2.eval())
+        prop4: ImplyProp = proof5.prop  # type: ignore
+        proof61 = FromEvalAxiom(
+            prop4.left_child
+        )  # !(p1.eval() => !p2.eval()) => !(p1 => !p2)
+        proof62 = Transitive(proof6, proof61).proof  # p1 /\\ p2 => !(p1 => !p2)
+        proof7 = Transitive(proof62, proof5).proof  # (p1 /\\ p2) => p2
 
         self.input = {"prop1": p1, "prop2": p2}
         super().__init__(proof7)
@@ -488,10 +491,19 @@ class AndExchange(Theorem):
         proof7 = ModusPonens(proof5, proof6)  # !(p1 => !p2) => !(p2 => !p1)
         prop1 = AndProp(p1, p2)
         prop2 = AndProp(p2, p1)
-        proof8 = ToEvalAxiom(prop1)
-        proof9 = FromEvalAxiom(prop2)
-        proof10 = Transitive(proof8, proof7).proof  # And(p1, p2) => !(p2 => !p1)
-        proof11 = Transitive(proof10, proof9).proof  # And(p1, p2) => And(p2, p1)
+        proof8 = ToEvalAxiom(prop1)  # p1 /\\ p2 => !(p1.eval() => !p2.eval())
+
+        proof9 = FromEvalAxiom(prop2)  # !(p2.eval() => !p1.eval()) => p1 /\\ p2
+        prop3: ImplyProp = proof7.prop  # type:ignore
+        prop4 = prop3.left_child  # !(p1 => !p2)
+        prop5 = prop3.right_child  # !(p2 => !p1)
+        proof81 = FromEvalAxiom(prop4)
+        proof82 = Transitive(proof8, proof81).proof  # p1 /\\ p2 => !(p1 => !p2)
+        proof91 = ToEvalAxiom(prop5)
+        proof92 = Transitive(proof91, proof9).proof  # !(p2 => !p1) => p1 /\\ p2
+
+        proof10 = Transitive(proof82, proof7).proof  # And(p1, p2) => !(p2 => !p1)
+        proof11 = Transitive(proof10, proof92).proof  # And(p1, p2) => And(p2, p1)
 
         self.input = {
             "prop1": p1,
@@ -1509,10 +1521,10 @@ class ImplyIIFExchange(Theorem):
         return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()}, {self.input['prop3'].__str__()}, {self.input['prop4'].__str__()})"
 
 
-# TODO: extprop
 class Replacement(Theorem):
     def __init__(self, p1: Prop, p2: Prop, p3: Prop) -> None:
         """[forall x1, x2, ..., xn, (p1 <=> p2)] => [p3 <=> p3[p1->p2]]
+        or [forall x1, x2, ..., xn, (p1 <=> p2)] => [p3 <=> p3.eval()[p1->p2]]
 
         Args:
             p1 (Prop): _description_
@@ -1573,6 +1585,42 @@ class Replacement(Theorem):
                 prop10.left_child, prop10.right_child, prop9.variable
             ).proof
             output = ModusPonens(proof15, proof16)  # p3 <=> p3[p1->p2]
+        elif p3.getname() in ["AndProp", "OrProp", "IIFProp", "ExistProp"]:
+            proof17 = ToEvalAxiom(p3)
+            prop11: ImplyProp = proof17.prop  # type:ignore
+            prop12 = prop11.right_child  # p3.eval()
+            prop13 = p3.replacement(
+                p1, p2
+            )  # p3[p1 -> p2] with unchanged root node type
+            proof171 = Replacement(p1, p2, prop12).proof
+            proof18 = ModusPonens(
+                assume1, proof171
+            )  # p3.eval() <=> p3.eval()[p1 -> p2]
+            prop14: IIFProp = proof18.prop  # type:ignore
+            prop15 = prop14.right_child  # p3.eval()[p1 -> p2]
+
+            proof19 = ModusPonens(
+                FromEvalAxiom(p3),
+                ModusPonens(ToEvalAxiom(p3), IIFIntro(p3, prop12).proof),
+            )  # p3 <=> p3.eval()
+            proof20 = IIFTransition(p3, prop12, prop15).proof
+            proof21 = ModusPonens(
+                proof18, ModusPonens(proof19, proof20)
+            )  # p3 <=> p3.eval()[p1->p2]
+            if prop13 == prop15:
+                # I'm not sure whether p3[p1->p2] is always equal to p3.eval()[p1->p2]
+                proof22 = ModusPonens(
+                    ToEvalAxiom(prop13),
+                    ModusPonens(FromEvalAxiom(prop13), IIFIntro(prop15, prop13).proof),
+                )  # p3.eval()[p1->p2] <=> p3[p1->p2]
+                proof23 = IIFTransition(p3, prop15, prop13).proof
+                proof24 = ModusPonens(
+                    proof22, ModusPonens(proof21, proof23)
+                )  # p3 <=> p3[p1->p2]
+                output = proof24
+            else:
+                output = proof21
+            pass
 
         output = Deduction(assume1, output).proof
         self.input = {"prop1": p1, "prop2": p2, "prop3": p3}
@@ -1580,3 +1628,92 @@ class Replacement(Theorem):
 
     def __str__(self) -> str:
         return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()}, {self.input['prop3'].__str__()})"
+
+
+class IIFToEval(Theorem):
+    def __init__(self, p1: Prop) -> None:
+        """p1 <=> p1.eval()
+
+        Args:
+            p1 (Prop): _description_
+        """
+        proof1 = ToEvalAxiom(p1)  # p1 => p1.eval()
+        proof2 = FromEvalAxiom(p1)  # p1.eval() => p1
+        proof3 = IIFIntro(p1, p1.eval()).proof
+        proof4 = ModusPonens(proof2, ModusPonens(proof1, proof3))  # p1 <=> p1.eval()
+        self.input = {"prop1": p1}
+        super().__init__(proof4)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()})"
+
+
+class IIFFromEval(Theorem):
+    def __init__(self, p1: Prop) -> None:
+        """p1.eval() <=> p1
+
+        Args:
+            p1 (Prop): _description_
+        """
+        proof1 = ToEvalAxiom(p1)  # p1 => p1.eval()
+        proof2 = FromEvalAxiom(p1)  # p1.eval() => p1
+        proof3 = IIFIntro(p1.eval(), p1).proof
+        proof4 = ModusPonens(proof1, ModusPonens(proof2, proof3))  # p1 <=> p1.eval()
+        self.input = {"prop1": p1}
+        super().__init__(proof4)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()})"
+
+
+class IIFElimReverse(Theorem):
+    def __init__(self, p1: Prop, p2: Prop) -> None:
+        """(p1 <=> p2) => (p2 => p1)
+
+        Args:
+            p1 (Prop): _description_
+            p2 (Prop): _description_
+        """
+        proof1 = IIFExchange(p1, p2).proof  # p1 <=> p2 => p2 <=> p1
+        proof2 = IIFElim(p2, p1).proof  # p2 <=> p1 => p2 => p1
+        proof3 = Transitive(proof1, proof2).proof  # (p1 <=> p2) => (p2 => p1)
+        self.input = {"prop1": p1, "prop2": p2}
+        super().__init__(proof3)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()})"
+
+
+class IIFIntroFromProof(Theorem):
+    def __init__(self, proof1: Proof, proof2: Proof) -> None:
+        """p1 => p2, p2 => p1 |=> p1 <=> p2
+
+        Args:
+            proof1 (Proof): _description_
+            proof2 (Proof): _description_
+
+        Raises:
+            ValueError: _description_
+        """
+        if proof1.prop.getname() != "ImplyProp":
+            raise ValueError("IIFIntroFromProof(): proof1.prop is not ImplyProp")
+        if proof2.prop.getname() != "ImplyProp":
+            raise ValueError("IIFIntroFromProof(): proof2.prop is not ImplyProp")
+        prop1: ImplyProp = proof1.prop  # type:ignore
+        prop2: ImplyProp = proof2.prop  # type:ignore
+        if prop1.left_child != prop2.right_child:
+            raise ValueError(
+                "IIFIntroFromProof(): proof1.prop.left_child != proof2.prop.right_child"
+            )
+        if prop1.right_child != prop2.left_child:
+            raise ValueError(
+                "IIFIntroFromProof(): proof1.prop.right_child != proof2.prop.left_child"
+            )
+        proof3 = IIFIntro(prop1.left_child, prop1.right_child).proof
+        proof4 = ModusPonens(proof2, ModusPonens(proof1, proof3))
+
+        self.input = {"proof1": proof1, "proof2": proof2}
+        super().__init__(proof4)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['proof1'].__str__()}, {self.input['proof2'].__str__()})"
