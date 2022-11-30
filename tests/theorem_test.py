@@ -27,9 +27,12 @@ from theorem import (
     ForallNotToForallNotIntro,
     ForallOrToOrForallExist,
     ForallXYToForallX,
+    IIFDoubleNotElim,
+    IIFDoubleNotIntro,
     IIFElim,
     IIFElimReverse,
     IIFExchange,
+    IIFExistNotToNotForall,
     IIFFromEval,
     IIFIntro,
     IIFIntroFromProof,
@@ -37,6 +40,7 @@ from theorem import (
     IIFToEval,
     IIFToNotIIF,
     IIFTransition,
+    IIFTransitionFromProof,
     ImplyExchange,
     ImplyIIFExchange,
     ImplyNotExchange,
@@ -763,4 +767,35 @@ class TheoremTest(unittest.TestCase):
         proof1 = Proof(prop1)
         proof2 = Proof(prop2)
         theorem1 = IIFIntroFromProof(proof1, proof2)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_IIFTransitionFromProof(self):
+        vpa = VarProp(Variable("a"))
+        vpb = VarProp(Variable("b"))
+        vpc = VarProp(Variable("c"))
+        proof1 = Proof(IIFProp(vpa, vpb))
+        proof2 = Proof(IIFProp(vpb, vpc))
+        assume1 = Assumption(IIFProp(vpa, vpc))
+        theorem1 = IIFTransitionFromProof(proof1, proof2)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_IIFDoubleNotElim(self):
+        vpa = VarProp(Variable("a"))
+        assume1 = Assumption(IIFProp(NotProp(NotProp(vpa)), vpa))
+        theorem1 = IIFDoubleNotElim(vpa)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_IIFDoubleNotIntro(self):
+        vpa = VarProp(Variable("a"))
+        assume1 = Assumption(IIFProp(vpa, NotProp(NotProp(vpa))))
+        theorem1 = IIFDoubleNotIntro(vpa)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_IIFExistNotToNotForall(self):
+        x = Variable("x")
+        vpa = VarProp(Variable("a"))
+        prop1 = ExistProp(x, NotProp(vpa))
+        prop2 = NotProp(ForallProp(x, vpa))
+        assume1 = Assumption(IIFProp(prop1, prop2))
+        theorem1 = IIFExistNotToNotForall(vpa, x)
         self.assertEqual(assume1, theorem1.proof)

@@ -1717,3 +1717,100 @@ class IIFIntroFromProof(Theorem):
 
     def __str__(self) -> str:
         return f"{self.getname()}({self.input['proof1'].__str__()}, {self.input['proof2'].__str__()})"
+
+
+class IIFTransitionFromProof(Theorem):
+    def __init__(self, proof1: Proof, proof2: Proof) -> None:
+        """p1 <=> p2, p2 <=> p3 |=> p1 <=> p3
+
+        Args:
+            proof1 (Proof): _description_
+            proof2 (Proof): _description_
+        """
+        if proof1.prop.getname() != "IIFProp":
+            raise ValueError("IIFTransitionFromProof(): proof1.prop is not IIFProp")
+        if proof2.prop.getname() != "IIFProp":
+            raise ValueError("IIFTransitionFromProof(): proof2.prop is not IIFProp")
+        prop1: IIFProp = proof1.prop  # type:ignore
+        prop2: IIFProp = proof2.prop  # type:ignore
+        if prop1.right_child != prop2.left_child:
+            raise ValueError(
+                "IIFTransitionFromProof(): proof1.prop.left_child != proof2.prop.right_child"
+            )
+
+        proof3 = IIFTransition(
+            prop1.left_child, prop1.right_child, prop2.right_child
+        ).proof
+        proof4 = ModusPonens(proof2, ModusPonens(proof1, proof3))  # p1 <=> p3
+
+        self.input = {"proof1": proof1, "proof2": proof2}
+        super().__init__(proof4)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['proof1'].__str__()}, {self.input['proof2'].__str__()})"
+
+
+class IIFDoubleNotElim(Theorem):
+    def __init__(self, p1: Prop) -> None:
+        """!!p1 <=> p1
+
+        Args:
+            p1 (Prop): _description_
+        """
+        proof1 = DoubleNotElim(p1).proof  # !!p1 => p1
+        proof2 = DoubleNotIntro(p1).proof  # p1 => !!p1
+        proof3 = IIFIntroFromProof(proof1, proof2).proof  # !!p1 <=> p1
+        self.input = {"prop1": p1}
+        super().__init__(proof3)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()})"
+
+
+class IIFDoubleNotIntro(Theorem):
+    def __init__(self, p1: Prop) -> None:
+        """p1 <=> !!p1
+
+        Args:
+            p1 (Prop): _description_
+        """
+        proof1 = DoubleNotElim(p1).proof  # !!p1 => p1
+        proof2 = DoubleNotIntro(p1).proof  # p1 => !!p1
+        proof3 = IIFIntroFromProof(proof2, proof1).proof  # p1 <=> !!p1
+        self.input = {"prop1": p1}
+        super().__init__(proof3)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()})"
+
+
+class IIFExistNotToNotForall(Theorem):
+    def __init__(self, p1: Prop, x: Variable) -> None:
+        """(exists x, !p1) <=> !(forall x, p1)
+
+        Args:
+            p1 (Prop): _description_
+            x (Variable): _description_
+        """
+        prop1 = ExistProp(x, NotProp(p1))  # (exists x, !p1)
+        proof1 = IIFToEval(prop1).proof  # (exists x, !p1) <=> !(forall x, !!p1)
+        prop2: IIFProp = proof1.prop  # type: ignore
+
+        proof2 = IIFDoubleNotElim(p1).proof  # !!p1 <=> p1
+
+        for var in proof2.prop.freevars:
+            proof2 = Generalization(proof2, var)
+
+        proof3 = Replacement(NotProp(NotProp(p1)), p1, prop2.right_child).proof
+        proof4 = ModusPonens(proof2, proof3)  # !(forall x, !!p1) <=> !(forall x, p1)
+        proof5 = IIFTransitionFromProof(
+            proof1, proof4
+        ).proof  # (exists x, !p1) <=> !(forall x, p1)
+
+        self.input = {"prop1": p1, "var1": x}
+        super().__init__(proof5)
+
+    def __str__(self) -> str:
+        return (
+            f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['var1']})"
+        )
