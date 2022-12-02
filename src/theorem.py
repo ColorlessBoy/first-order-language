@@ -90,6 +90,47 @@ class Transitive(Theorem):
         return f"{self.getname()} ({self.input['proof1'].__str__()}, {self.input['proof2'].__str__()})"
 
 
+class TransitionWithEval(Theorem):
+    def __init__(self, proof1: Proof, proof2: Proof) -> None:
+        """Transitive with eval
+
+        Args:
+            proof1 (Proof): a => b1
+            proof2 (Proof): b2 => c
+            b1.eval() == b2.eval()
+
+        Returns:
+            Proof: a => c
+        """
+        if proof1.prop.getname() != "ImplyProp":
+            raise ValueError("transitive(): proof1.prop should be an ImplyProp")
+        if proof2.prop.getname() != "ImplyProp":
+            raise ValueError("transitive(): proof2.prop should be an ImplyProp")
+        p1: ImplyProp = proof1.prop  # type: ignore
+        p2: ImplyProp = proof2.prop  # type: ignore
+        if p1.right_child.eval() != p2.left_child.eval():
+            raise ValueError(
+                "transitive(): proof1.prop.right_child != proof2.prop.left_child"
+            )
+
+        b1 = p1.right_child
+        proof3 = ToEvalAxiom(b1)
+        b2 = p2.left_child
+        proof4 = FromEvalAxiom(b2)
+        proof5 = Transitive(proof1, proof3).proof
+        proof6 = Transitive(proof5, proof4).proof
+        proof7 = Transitive(proof6, proof2).proof
+
+        self.input = {
+            "proof1": proof1,
+            "proof2": proof2,
+        }
+        super().__init__(proof7)
+
+    def __str__(self) -> str:
+        return f"{self.getname()} ({self.input['proof1'].__str__()}, {self.input['proof2'].__str__()})"
+
+
 class Deduction(Theorem):
     def __init__(self, assume: Assumption, proof: Proof) -> None:
         """Deduction: remove assumption (Not in Generalization)
@@ -1024,13 +1065,13 @@ class ForallImplyToImplyExist(Theorem):
         proof12 = ToEvalAxiom(prop3)
         proof13 = FromEvalAxiom(prop4)
 
-        proof14 = Transitive(
+        proof14 = TransitionWithEval(
             proof12, proof11
         ).proof  # (exists x, prop1) => !(forall x, !prop2)
         prop5: ImplyProp = proof14.prop  # type: ignore
         proof14_1 = ToEvalAxiom(prop5.right_child)
-        proof14_2 = Transitive(proof14, proof14_1).proof
-        proof15 = Transitive(
+        proof14_2 = TransitionWithEval(proof14, proof14_1).proof
+        proof15 = TransitionWithEval(
             proof14_2, proof13
         ).proof  # (exists x, prop1) => (exists x, prop2)
 
@@ -1338,7 +1379,7 @@ class NotFreeVarExistElim(Theorem):
         proof2 = NotImplyExchange(p1, ForallProp(x, NotProp(p1))).proof
         proof3 = ModusPonens(proof1, proof2)  # !(forall x, !p1) => p1
         proof4 = ToEvalAxiom(ExistProp(x, p1))
-        proof5 = Transitive(proof4, proof3).proof  # (exist x, p1) => p1
+        proof5 = TransitionWithEval(proof4, proof3).proof  # (exist x, p1) => p1
 
         self.input = {"prop1": p1, "var1": x}
         super().__init__(proof5)
@@ -1384,7 +1425,7 @@ class NotFreeVarImplyForallIIFForall(Theorem):
 
 class NotFreeVarImplyExistIIFForall(Theorem):
     def __init__(self, p1: Prop, p2: Prop, x: Variable) -> None:
-        """((exists x, p2) => p1) => (forall x, (p2 => p1))
+        """((exists x, p2) => p1) <=> (forall x, (p2 => p1))
 
         Args:
             p1 (Prop): _description_
@@ -1630,6 +1671,40 @@ class Replacement(Theorem):
         return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()}, {self.input['prop3'].__str__()})"
 
 
+class ReplacementFromProof(Theorem):
+    def __init__(self, proof1: Proof, p3: Prop) -> None:
+        """p1 <=> p2 |=> p3 <=> p3[p1 -> p2]
+        or p1 <=> p2 |=> p3 <=> p3.eval()[p1 -> p2]
+
+        Args:
+            proof1 (Proof): Proof(p1 <=> p2)
+            p3 (Prop): _description_
+        """
+        prop1: IIFProp = proof1.prop  # type:ignore
+        p1 = prop1.left_child
+        p2 = prop1.right_child
+        proof2 = Replacement(p1, p2, p3).proof
+        prop2: ImplyProp = proof2.prop  # type:ignore
+        prop3 = prop2.left_child  # type:ignore
+
+        varlist = []
+        while isinstance(prop3, ForallProp) and prop3 != prop1:
+            prop3: ForallProp = prop3
+            varlist.append(prop3.variable)
+            prop3 = prop3.child  # type:ignore
+        varlist = varlist[::-1]
+        proof3 = proof1
+        for var in varlist:
+            proof3 = Generalization(proof3, var)
+        proof4 = ModusPonens(proof3, proof2)
+
+        self.input = {"proof1": proof1, "prop3": p3}
+        super().__init__(proof4)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['proof1'].__str__()}, {self.input['prop3'].__str__()})"
+
+
 class IIFToEval(Theorem):
     def __init__(self, p1: Prop) -> None:
         """p1 <=> p1.eval()
@@ -1797,16 +1872,12 @@ class IIFExistNotToNotForall(Theorem):
         prop2: IIFProp = proof1.prop  # type: ignore
 
         proof2 = IIFDoubleNotElim(p1).proof  # !!p1 <=> p1
-
-        for var in proof2.prop.freevars:
-            proof2 = Generalization(proof2, var)
-
-        proof3 = Replacement(NotProp(NotProp(p1)), p1, prop2.right_child).proof
-        proof4 = ModusPonens(proof2, proof3)  # !(forall x, !!p1) <=> !(forall x, p1)
+        proof4 = ReplacementFromProof(
+            proof2, prop2.right_child
+        ).proof  # !(forall x, !!p1) <=> !(forall x, p1)
         proof5 = IIFTransitionFromProof(
             proof1, proof4
         ).proof  # (exists x, !p1) <=> !(forall x, p1)
-
         self.input = {"prop1": p1, "var1": x}
         super().__init__(proof5)
 
@@ -1814,3 +1885,89 @@ class IIFExistNotToNotForall(Theorem):
         return (
             f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['var1']})"
         )
+
+
+class ExistRenameVar(Theorem):
+    def __init__(self, p1: Prop, x: Variable, y: Variable):
+        """(exists x, p1) => (exists y, p1[x->y])
+
+        Args:
+            p1 (Prop): _description_
+            x (Variable): _description_
+            y (Variable): _description_
+        """
+        proof1 = ForallElimAxiom(NotProp(p1), x, y)  # (forall x, !p1) => !p1[x -> y]
+        prop1: ImplyProp = proof1.prop  # type:ignore
+        proof2 = ForallElimAxiom(
+            prop1.right_child, y, x
+        )  # (forall y, !p1[x -> y]) => !p1
+        prop2: ImplyProp = proof2.prop  # type:ignore
+        proof3 = ForallImplyExchangeAxiom(prop2.left_child, prop2.right_child, x)
+        proof4 = Generalization(proof2, x)
+        proof5 = ModusPonens(
+            proof4, proof3
+        )  # (forall y, !p1[x -> y]) => (forall x, !p1)
+        prop3: ImplyProp = proof5.prop  # type:ignore
+        proof6 = ModusPonens(
+            proof5, NotToNotIntro(prop3.left_child, prop3.right_child).proof
+        )  # !(forall x, !p1) => !(forall y, !p1[x -> y])
+        proof7 = ToEvalAxiom(ExistProp(x, p1))
+        prop4: NotProp = prop1.right_child  # type:ignore
+        proof8 = FromEvalAxiom(ExistProp(y, prop4.child))
+
+        proof9 = Transitive(Transitive(proof7, proof6).proof, proof8).proof
+        self.input = {"prop1": p1, "var1": x, "var2": y}
+
+        super().__init__(proof9)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['var1']}, {self.input['var2']})"
+
+
+class ChoiceToExist(Theorem):
+    def __init__(self, proof1: Proof, p1: Prop, x: Variable) -> None:
+        """Change
+        Assume(p1) |=> proof1
+        into
+        (exists x, p1) => (exists x, proof1.prop)
+
+        Note:
+            Variable("choicetoexist") should not occur in props.
+        Args:
+            proof1 (Proof): _description_
+            p1 (Prop): _description_
+            x (Variable):
+        """
+        assume1 = Assumption(p1)  # p1
+        proof3 = Deduction(assume1, proof1).proof  # p1 => proof1.prop
+
+        tmpvar = Variable("choicevar")
+        proof4 = ExistIntro(proof1.prop.substitute(x, tmpvar), tmpvar, x).proof
+        proof6 = Transitive(proof3, proof4).proof  # p1 => (exists tmp, proof1[x->tmp])
+        proof7 = Generalization(
+            proof6, x
+        )  # (forall x, p1 => (exists tmp, proof1[x->tmp]))
+        prop1: ImplyProp = proof6.prop  # type:ignore
+        proof8 = NotFreeVarImplyExistIIFForall(
+            prop1.right_child, prop1.left_child, x
+        ).proof
+        #  ((exists x, p1) => (exists tmp, proof1[x->tmp])) <=> (forall x, p1 => (exists tmp, proof1[x->tmp]))
+        prop2: IIFProp = proof8.prop  # type:ignore
+        proof9 = ModusPonens(
+            proof8, IIFExchange(prop2.left_child, prop2.right_child).proof
+        )  # (forall x, p1 => (exists tmp, proof1[x->tmp])) <=> ((exists x, p1) => (exists tmp, proof1[x->tmp]))
+        proof91 = IIFElim(prop2.right_child, prop2.left_child).proof
+        proof92 = ModusPonens(proof9, proof91)
+        proof10 = ModusPonens(
+            proof7, proof92
+        )  # ((exists x, p1) => (exists tmp, proof1[x->tmp]))
+        prop3: ExistProp = prop1.right_child  # type:ignore
+        proof11 = Transitive(
+            proof10, ExistRenameVar(prop3.child, tmpvar, x).proof
+        ).proof  # ((exists x, p1) => (exists x, proof1))
+
+        self.input = {"proof1": proof1, "prop1": p1, "var1": x}
+        super().__init__(proof11)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['proof1'].__str__()}, {self.input['prop1']}, {self.input['var1']})"

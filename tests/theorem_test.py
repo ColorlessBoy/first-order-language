@@ -6,17 +6,19 @@ sys.path.append("./src")
 import unittest
 
 from extprop import AndProp, ExistProp, IIFProp, OrProp
-from proof import Assumption, ModusPonens, Proof
+from proof import Assumption, Axiom1, ModusPonens, Proof
 from prop import ForallProp, ImplyProp, NotProp, VarProp
 from theorem import (
     AndElim,
     AndExchange,
     AndIntro,
+    ChoiceToExist,
     Contradiction,
     Deduction,
     DoubleNotElim,
     DoubleNotIntro,
     ExistIntro,
+    ExistRenameVar,
     ExistToExistExist,
     ForallAndToAndForall,
     ForallExchange,
@@ -65,6 +67,8 @@ from theorem import (
     OrIntro,
     Reflexive,
     Replacement,
+    ReplacementFromProof,
+    TransitionWithEval,
     Transitive,
 )
 from variable import Variable
@@ -89,6 +93,20 @@ class TheoremTest(unittest.TestCase):
         proof_a2c = Proof(ImplyProp(vpa, vpc))
 
         proof = Transitive(proof_a2b, proof_b2c).proof
+        self.assertEqual(proof, proof_a2c)
+
+    def test_TransitiveWithEval(self):
+        """{x = (a -> b), y = (b -> c)} |=> (a -> c)."""
+        x = Variable("x")
+        vpa = VarProp(Variable("a"))
+        vpb = VarProp(Variable("b"))
+        vpc = VarProp(Variable("c"))
+
+        proof_a2b = Proof(ImplyProp(vpa, ExistProp(x, vpb)))
+        proof_b2c = Proof(ImplyProp(NotProp(ForallProp(x, NotProp(vpb))), vpc))
+        proof_a2c = Proof(ImplyProp(vpa, vpc))
+
+        proof = TransitionWithEval(proof_a2b, proof_b2c).proof
         self.assertEqual(proof, proof_a2c)
 
     def test_Deduction(self):
@@ -730,6 +748,22 @@ class TheoremTest(unittest.TestCase):
         theorem1 = Replacement(vpa, vpb, p3)
         self.assertTrue(assume1 == theorem1.proof or assume2 == theorem1.proof)
 
+    def test_ReplacementFromProof(self):
+        a = Variable("a")
+        b = Variable("b")
+        x = Variable("x")
+        p1 = VarProp(a)
+        p2 = VarProp(b)
+        p3 = NotProp(ImplyProp(VarProp(x), ImplyProp(p1, p2)))
+        p4 = NotProp(ImplyProp(VarProp(x), ImplyProp(p2, p2)))
+
+        prop2 = IIFProp(p3, p4)
+        assume1 = Assumption(prop2)
+
+        proof1 = Proof(IIFProp(p1, p2))
+        theorem1 = ReplacementFromProof(proof1, p3)
+        self.assertTrue(assume1 == theorem1.proof)
+
     def test_IIFToEval(self):
         vpa = VarProp(Variable("a"))
         vpb = VarProp(Variable("b"))
@@ -798,4 +832,29 @@ class TheoremTest(unittest.TestCase):
         prop2 = NotProp(ForallProp(x, vpa))
         assume1 = Assumption(IIFProp(prop1, prop2))
         theorem1 = IIFExistNotToNotForall(vpa, x)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_ExistRenameVar(self):
+        x = Variable("x")
+        y = Variable("y")
+        vpx = VarProp(x)
+        vpy = VarProp(y)
+        vpa = VarProp(Variable("a"))
+        prop1 = ExistProp(x, ImplyProp(vpa, vpx))
+        prop2 = ExistProp(y, ImplyProp(vpa, vpy))
+        assume1 = Assumption(ImplyProp(prop1, prop2))
+        theorem1 = ExistRenameVar(ImplyProp(vpa, vpx), x, y)
+        self.assertEqual(assume1, theorem1.proof)
+
+    def test_ChoiceToExist(self):
+        x = Variable("x")
+        vpx = VarProp(x)
+        vpa = VarProp(Variable("a"))
+        assumeX = Assumption(vpx)
+        proof1 = ModusPonens(assumeX, Axiom1(vpx, vpa))  # assume(x) |=> vpa => vpx
+        prop2 = ImplyProp(
+            ExistProp(x, vpx), ExistProp(x, ImplyProp(vpa, vpx))
+        )  # (exists x, x) => (exists x, a => x)
+        assume1 = Assumption(prop2)
+        theorem1 = ChoiceToExist(proof1, vpx, x)
         self.assertEqual(assume1, theorem1.proof)
