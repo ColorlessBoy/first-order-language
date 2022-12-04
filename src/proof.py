@@ -94,7 +94,7 @@ class Axiom3(Proof):
         return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['prop2'].__str__()})"
 
 
-class ForallElimAxiom(Proof):
+class Axiom4(Proof):
     def __init__(self, p: Prop, x: Variable, y: Variable) -> None:
         """(forall x, p) => p
 
@@ -124,7 +124,7 @@ class ForallElimAxiom(Proof):
         return f"{self.getname()}({self.input['prop1'].__str__()}, {self.input['var1'].__str__()})"
 
 
-class ForallImplyExchangeAxiom(Proof):
+class Axiom5(Proof):
     def __init__(self, p1: Prop, p2: Prop, x: Variable) -> None:
         """(forall x, p1 => p2) => (p1 => (forall x, p2))
             where x is not free in p1
@@ -194,3 +194,23 @@ class ModusPonens(Proof):
 
     def __str__(self) -> str:
         return f"{self.getname()}({self.input['proof1'].__str__()}, {self.input['proof2'].__str__()})"
+
+
+class ToEvalAxiom(Proof):
+    def __init__(self, p: Prop) -> None:
+        prop = ImplyProp(p, p.eval())
+        self.input = {"prop": prop}
+        super().__init__(prop)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop']})"
+
+
+class FromEvalAxiom(Proof):
+    def __init__(self, p: Prop) -> None:
+        prop = ImplyProp(p.eval(), p)
+        self.input = {"prop": prop}
+        super().__init__(prop)
+
+    def __str__(self) -> str:
+        return f"{self.getname()}({self.input['prop']})"

@@ -1,18 +1,28 @@
 from __future__ import annotations
 
-from extprop import AndProp, ExistProp, FromEvalAxiom, IIFProp, OrProp, ToEvalAxiom
 from proof import (
     Assumption,
     Axiom1,
     Axiom2,
     Axiom3,
-    ForallElimAxiom,
-    ForallImplyExchangeAxiom,
+    Axiom4,
+    Axiom5,
+    FromEvalAxiom,
     Generalization,
     ModusPonens,
     Proof,
+    ToEvalAxiom,
 )
-from prop import ForallProp, ImplyProp, NotProp, Prop
+from prop import (
+    AndProp,
+    ExistProp,
+    ForallProp,
+    IIFProp,
+    ImplyProp,
+    NotProp,
+    OrProp,
+    Prop,
+)
 from variable import Variable
 
 
@@ -175,7 +185,7 @@ class Deduction(Theorem):
                     "Deduction(): x which in Gen(..., x) should not be free in assume."
                 )
             g_proof4 = Deduction(assume, g_proof2).proof  # assume.prop => g_proof2.prop
-            g_proof5 = ForallImplyExchangeAxiom(
+            g_proof5 = Axiom5(
                 assume.prop, g_proof2.prop, g_x
             )  # (forall x, assume.prop => g_proof2.prop) => (assume.prop => (forall x, g_proof2.prop))
             g_proof6 = Generalization(
@@ -920,11 +930,11 @@ class ForallExchange(Theorem):
             ForallProp(x1, ForallProp(x2, p1))
         )  # (forall x1, (forall x2, p1))
         prop1 = ForallProp(x2, p1)
-        proof2 = ForallElimAxiom(
+        proof2 = Axiom4(
             prop1, x1, x1
         )  # (forall x1, (forall x2, p1)) => (forall x2, p1)
         proof3 = ModusPonens(assume1, proof2)  # forall x2, p1
-        proof4 = ForallElimAxiom(p1, x2, x2)  # (forall x2, p1) => p1
+        proof4 = Axiom4(p1, x2, x2)  # (forall x2, p1) => p1
         proof5 = ModusPonens(proof3, proof4)  # p1
 
         proof6 = Generalization(proof5, x1)  # (forall x1, p1)
@@ -948,9 +958,7 @@ class ExistIntro(Theorem):
             x (Variable): _description_
             y (Variable): _description_
         """
-        proof1 = ForallElimAxiom(
-            NotProp(prop), x, y
-        )  # (forall x, !prop) => !prop[x -> y]
+        proof1 = Axiom4(NotProp(prop), x, y)  # (forall x, !prop) => !prop[x -> y]
 
         prop1: ImplyProp = proof1.prop  # type: ignore
         proof2 = NotToNotIntro(prop1.left_child, prop1.right_child).proof
@@ -981,9 +989,9 @@ class ForallXYToForallX(Theorem):
             y (Variable): _description_
         """
         assume1 = Assumption(ForallProp(x, ForallProp(y, prop)))
-        proof1 = ForallElimAxiom(ForallProp(y, prop), x, x)
+        proof1 = Axiom4(ForallProp(y, prop), x, x)
         proof2 = ModusPonens(assume1, proof1)  # forall y, prop
-        proof3 = ForallElimAxiom(prop, y, x)  # (forall y, prop) => prop[y->x]
+        proof3 = Axiom4(prop, y, x)  # (forall y, prop) => prop[y->x]
         proof4 = ModusPonens(proof2, proof3)  # prop[y->x]
         proof5 = Generalization(proof4, x)  # forall x, prop[y->x]
         proof6 = Deduction(assume1, proof5).proof
@@ -1007,12 +1015,12 @@ class ForallImplyToImplyForall(Theorem):
         assume1 = Assumption(
             ForallProp(x, ImplyProp(prop1, prop2))
         )  # (forall x, prop1 => prop2)
-        proof1 = ForallElimAxiom(ImplyProp(prop1, prop2), x, x)
+        proof1 = Axiom4(ImplyProp(prop1, prop2), x, x)
         proof2 = ModusPonens(assume1, proof1)  # prop1 => prop2
-        proof3 = ForallElimAxiom(prop1, x, x)  # (forall x, prop1) => prop1
+        proof3 = Axiom4(prop1, x, x)  # (forall x, prop1) => prop1
         proof4 = Transitive(proof3, proof2).proof  # (forall x, prop1) => prop2
         proof5 = Generalization(proof4, x)  # (forall x, (forall x, prop1) => prop2)
-        proof6 = ForallImplyExchangeAxiom(
+        proof6 = Axiom5(
             ForallProp(x, prop1), prop2, x
         )  # (forall x, (forall x, prop1) => prop2) => (forall x, prop1) => (forall x, prop2)
         proof7 = ModusPonens(proof5, proof6)  # (forall x, prop1) => (forall x, prop2)
@@ -1037,17 +1045,17 @@ class ForallImplyToImplyExist(Theorem):
         assume1 = Assumption(
             ForallProp(x, ImplyProp(prop1, prop2))
         )  # (forall x, prop1 => prop2)
-        proof1 = ForallElimAxiom(ImplyProp(prop1, prop2), x, x)
+        proof1 = Axiom4(ImplyProp(prop1, prop2), x, x)
         proof2 = ModusPonens(assume1, proof1)  # prop1 => prop2
         proof3 = NotToNotIntro(
             prop1, prop2
         ).proof  # (prop1 => prop2) => (!prop2 => !prop1)
         proof4 = ModusPonens(proof2, proof3)  # !prop2 => !prop1
 
-        proof5 = ForallElimAxiom(NotProp(prop2), x, x)  # (forall x, !prop2) => !prop2
+        proof5 = Axiom4(NotProp(prop2), x, x)  # (forall x, !prop2) => !prop2
         proof6 = Transitive(proof5, proof4).proof  # (forall x, !prop2) => !prop1
         proof7 = Generalization(proof6, x)  # (forall x, (forall x, !prop2) => !prop1)
-        proof8 = ForallImplyExchangeAxiom(
+        proof8 = Axiom5(
             ForallProp(x, NotProp(prop2)), NotProp(prop1), x
         )  # (forall x, (forall x, !prop2) => !prop1) => (forall x, !prop2) => (forall x, !prop1)
         proof9 = ModusPonens(proof7, proof8)  # (forall x, !prop2) => (forall x, !prop1)
@@ -1094,7 +1102,7 @@ class ForallAndToAndForall(Theorem):
         """
         prop3 = AndProp(prop1, prop2)
         assume1 = Assumption(ForallProp(x, AndProp(prop1, prop2)))
-        proof1 = ForallElimAxiom(prop3, x, x)
+        proof1 = Axiom4(prop3, x, x)
         proof2 = ModusPonens(assume1, proof1)  # prop1 /\\ prop2
         proof3 = AndElim(prop1, prop2).proof  # prop1 /\\ prop2  => prop2
         proof4 = ModusPonens(proof2, proof3)  # prop2
@@ -1131,7 +1139,7 @@ class NotForallToExistNot(Theorem):
         prop2 = NotProp(NotProp(prop1))
         prop3 = ForallProp(x, NotProp(NotProp(prop1)))
         assume1 = Assumption(prop3)
-        proof1 = ForallElimAxiom(prop2, x, x)  # (forall x, !!prop1) => !!prop1
+        proof1 = Axiom4(prop2, x, x)  # (forall x, !!prop1) => !!prop1
         proof2 = ModusPonens(assume1, proof1)  # !!prop1
         proof3 = DoubleNotElim(prop1).proof  # !!prop1 => prop1
         proof4 = ModusPonens(proof2, proof3)  # prop1
@@ -1170,12 +1178,12 @@ class OrForallToForallOr(Theorem):
         assume1 = Assumption(prop3)
         proof1 = ToEvalAxiom(prop3)
         proof2 = ModusPonens(assume1, proof1)  # !(forall x, prop1) => (forall x, prop2)
-        proof3 = ForallElimAxiom(prop2, x, x)  # (forall x, prop2) => prop2
+        proof3 = Axiom4(prop2, x, x)  # (forall x, prop2) => prop2
         proof4 = Transitive(proof2, proof3).proof  # !(forall x, prop1) => prop2
 
         proof5 = NotImplyExchange(ForallProp(x, prop1), prop2).proof
         proof6 = ModusPonens(proof4, proof5)  # !prop2 => (forall x, prop1)
-        proof7 = ForallElimAxiom(prop1, x, x)  # (forall x, prop1) => prop1
+        proof7 = Axiom4(prop1, x, x)  # (forall x, prop1) => prop1
         proof8 = Transitive(proof6, proof7).proof  # !prop2 => prop1
 
         proof9 = NotImplyExchange(
@@ -1208,18 +1216,18 @@ class ForallOrToOrForallExist(Theorem):
         """
         prop1 = OrProp(p1, p2)
         assume1 = Assumption(ForallProp(x, prop1))
-        proof1 = ForallElimAxiom(prop1, x, x)
+        proof1 = Axiom4(prop1, x, x)
         proof2 = ModusPonens(assume1, proof1)  # p1 \\/ p2
         proof3 = OrExchange(p1, p2).proof  # p1 \\/ p2 => p2 \\/ p1
         proof4 = ModusPonens(proof2, proof3)  # p2 \\/ p1
         prop2 = OrProp(p2, p1)
         proof5 = ToEvalAxiom(prop2)
         proof6 = ModusPonens(proof4, proof5)  # !p2 => p1
-        proof7 = ForallElimAxiom(NotProp(p2), x, x)  # (forall x, !p2) => !p2
+        proof7 = Axiom4(NotProp(p2), x, x)  # (forall x, !p2) => !p2
         proof8 = Transitive(proof7, proof6).proof  # (forall x, !p2) => p1
         proof9 = Generalization(proof8, x)  # (forall x, (forall x, !p2) => p1)
 
-        proof10 = ForallImplyExchangeAxiom(
+        proof10 = Axiom5(
             ForallProp(x, NotProp(p2)), p1, x
         )  # (forall x, (forall x, !p2) => p1) => (forall x, !p2) => (forall x, p1)
         proof11 = ModusPonens(proof9, proof10)  # (forall x, !p2) => (forall x, p1)
@@ -1251,14 +1259,14 @@ class ForallNotToForallNotIntro(Theorem):
             x (Variable): _description_
         """
         assume1 = Assumption(ForallProp(x, ImplyProp(p1, p2)))
-        proof1 = ForallElimAxiom(ImplyProp(p1, p2), x, x)
+        proof1 = Axiom4(ImplyProp(p1, p2), x, x)
         proof2 = ModusPonens(assume1, proof1)  # p1 => p2
         proof3 = NotToNotIntro(p1, p2).proof
         proof4 = ModusPonens(proof2, proof3)  # !p2 => !p1
-        proof5 = ForallElimAxiom(NotProp(p2), x, x)
+        proof5 = Axiom4(NotProp(p2), x, x)
         proof6 = Transitive(proof5, proof4).proof  # (forall x, !p2) => !p1
         proof7 = Generalization(proof6, x)  # (forall x, (forall x, !p2) => !p1)
-        proof8 = ForallImplyExchangeAxiom(ForallProp(x, NotProp(p2)), NotProp(p1), x)
+        proof8 = Axiom5(ForallProp(x, NotProp(p2)), NotProp(p1), x)
         proof9 = ModusPonens(proof7, proof8)  # (forall x, !p2) => (forall x, !p1)
         proof10 = Deduction(assume1, proof9).proof
 
@@ -1278,7 +1286,7 @@ class ForallImplyExist(Theorem):
             x (Variable): _description_
             y (Variable): _description_
         """
-        proof1 = ForallElimAxiom(NotProp(p1), y, x)  # (forall y, !p1) => !p1[y -> x]
+        proof1 = Axiom4(NotProp(p1), y, x)  # (forall y, !p1) => !p1[y -> x]
         prop1: ImplyProp = proof1.prop  # type: ignore
         prop2: NotProp = prop1.right_child  # type:ignore
         proof2 = ImplyNotExchange(prop1.left_child, prop2.child).proof
@@ -1323,7 +1331,7 @@ class ExistToExistExist(Theorem):
             x (Variable): _description_
             y (Variable): _description_
         """
-        proof1 = ForallElimAxiom(NotProp(p1), y, x)  # (forall y, !p1) => !p1[y -> x]
+        proof1 = Axiom4(NotProp(p1), y, x)  # (forall y, !p1) => !p1[y -> x]
         prop1: ImplyProp = proof1.prop  # type: ignore
         prop2: NotProp = prop1.right_child  # type: ignore
         proof2 = ImplyNotExchange(prop1.left_child, prop2.child).proof
@@ -1357,7 +1365,7 @@ class NotFreeVarForallIntro(Theorem):
             raise ValueError("ImplyForallIIFForall(): x should be free in p1")
         proof1 = Reflexive(p1).proof  # p1 => p1
         proof2 = Generalization(proof1, x)  # (forall x, p1 => p1)
-        proof3 = ForallImplyExchangeAxiom(p1, p1, x)
+        proof3 = Axiom5(p1, p1, x)
         proof4 = ModusPonens(proof2, proof3)  # p1 => (forall x, p1)
 
         self.input = {"prop1": p1, "var1": x}
@@ -1400,12 +1408,10 @@ class NotFreeVarImplyForallIIFForall(Theorem):
         if p1.isfree(x):
             raise ValueError("ImplyForallIIFForall(): x should be free in p1")
 
-        proof1 = ForallImplyExchangeAxiom(
-            p1, p2, x
-        )  # (forall x, p1 => p2) => (p1 => (forall x, p2))
+        proof1 = Axiom5(p1, p2, x)  # (forall x, p1 => p2) => (p1 => (forall x, p2))
 
         assume1 = Assumption(ImplyProp(p1, ForallProp(x, p2)))
-        proof3 = ForallElimAxiom(p2, x, x)  # (forall x, p2) => p2
+        proof3 = Axiom4(p2, x, x)  # (forall x, p2) => p2
         proof4 = Transitive(assume1, proof3).proof  # p1 => p2
         proof5 = Generalization(proof4, x)
         proof6 = Deduction(assume1, proof5).proof
@@ -1448,7 +1454,7 @@ class NotFreeVarImplyExistIIFForall(Theorem):
         proof7 = Transitive(proof6, assume2).proof  # (!(forall x, !p2) => p1)
         proof8 = NotImplyExchange(ForallProp(x, NotProp(p2)), p1).proof
         proof9 = ModusPonens(proof7, proof8)  # !p1 => (forall x, !p2)
-        proof10 = ForallElimAxiom(NotProp(p2), x, x)
+        proof10 = Axiom4(NotProp(p2), x, x)
         proof11 = Transitive(proof9, proof10).proof  # !p1 => !p2
         proof12 = NotToNotElim(p1, p2).proof
         proof13 = ModusPonens(proof11, proof12)  # p2 => p1
@@ -1481,11 +1487,11 @@ class ForallIIFExchange(Theorem):
         assume2 = Assumption(ForallProp(x, p1))
         assume3 = Assumption(ForallProp(x, p2))
 
-        proof1 = ForallElimAxiom(IIFProp(p1, p2), x, x)
+        proof1 = Axiom4(IIFProp(p1, p2), x, x)
         proof2 = ModusPonens(assume1, proof1)  # p1 <=> p2
         proof21 = IIFElim(p1, p2).proof
         proof22 = ModusPonens(proof2, proof21)  # p1 => p2
-        proof3 = ForallElimAxiom(p1, x, x)
+        proof3 = Axiom4(p1, x, x)
         proof4 = ModusPonens(assume2, proof3)  # p1
         proof5 = ModusPonens(proof4, proof22)  # p2
         proof6 = Generalization(proof5, x)  # (forall x, p2)
@@ -1495,7 +1501,7 @@ class ForallIIFExchange(Theorem):
         proof10 = ModusPonens(proof2, proof9)  # p2 <=> p1
         proof11 = IIFElim(p2, p1).proof
         proof12 = ModusPonens(proof10, proof11)  # p2 => p1
-        proof13 = ForallElimAxiom(p2, x, x)
+        proof13 = Axiom4(p2, x, x)
         proof14 = ModusPonens(assume3, proof13)  # p2
         proof15 = ModusPonens(proof14, proof12)  # p1
         proof16 = Generalization(proof15, x)  # (forall x, p1)
@@ -1586,7 +1592,7 @@ class Replacement(Theorem):
             proof1 = assume1
             for var in varlist:
                 prop3: ForallProp = proof1.prop  # type:ignore
-                proof2 = ForallElimAxiom(prop3.child, var, var)
+                proof2 = Axiom4(prop3.child, var, var)
                 proof1 = ModusPonens(proof1, proof2)  # (p1 <=> p2)
             output = proof1
         elif p3.getname() == "NotProp":
@@ -1896,13 +1902,11 @@ class ExistRenameVar(Theorem):
             x (Variable): _description_
             y (Variable): _description_
         """
-        proof1 = ForallElimAxiom(NotProp(p1), x, y)  # (forall x, !p1) => !p1[x -> y]
+        proof1 = Axiom4(NotProp(p1), x, y)  # (forall x, !p1) => !p1[x -> y]
         prop1: ImplyProp = proof1.prop  # type:ignore
-        proof2 = ForallElimAxiom(
-            prop1.right_child, y, x
-        )  # (forall y, !p1[x -> y]) => !p1
+        proof2 = Axiom4(prop1.right_child, y, x)  # (forall y, !p1[x -> y]) => !p1
         prop2: ImplyProp = proof2.prop  # type:ignore
-        proof3 = ForallImplyExchangeAxiom(prop2.left_child, prop2.right_child, x)
+        proof3 = Axiom5(prop2.left_child, prop2.right_child, x)
         proof4 = Generalization(proof2, x)
         proof5 = ModusPonens(
             proof4, proof3

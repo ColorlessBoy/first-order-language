@@ -5,9 +5,17 @@ sys.path.append("./src")
 
 import unittest
 
-from extprop import AndProp, ExistProp, IIFProp, OrProp
 from proof import Assumption, Axiom1, ModusPonens, Proof
-from prop import ForallProp, ImplyProp, NotProp, VarProp
+from prop import (
+    AndProp,
+    ExistProp,
+    ForallProp,
+    IIFProp,
+    ImplyProp,
+    NotProp,
+    OrProp,
+    VarProp,
+)
 from theorem import (
     AndElim,
     AndExchange,
